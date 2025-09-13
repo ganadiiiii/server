@@ -1,0 +1,66 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  profiles:
+    active: prod
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://postgres:5432/ganadi}
+    username: ${DATABASE_USERNAME:ganadi}
+    password: ${DATABASE_PASSWORD:ganadi123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# CORS 설정 (프로덕션용)
+cors:
+  allowed-origins: ${CORS_ORIGINS:https://your-frontend-domain.com}
+  allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+jwt:
+  secret: ${JWT_SECRET:change_me_in_production}
+  expiration-seconds: ${JWT_EXPIRATION_SECONDS:3600}
+
+# 로깅 설정 (프로덕션용)
+logging:
+  level:
+    com.ganadi.palmful: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /app/logs/ganadi.log
+    max-size: 10MB
+    max-history: 30
+
+# Actuator 설정 (헬스체크용)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    db:
+      enabled: true

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ganadi-postgres
+    environment:
+      POSTGRES_DB: ganadi
+      POSTGRES_USER: ganadi
+      POSTGRES_PASSWORD: ganadi123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - ganadi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ganadi -d ganadi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Application
+  app:
+    build: .
+    container_name: ganadi-app
+    environment:
+      # Database configuration
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ganadi
+      DATABASE_USERNAME: ganadi
+      DATABASE_PASSWORD: ganadi123
+      
+      # JWT configuration
+      JWT_SECRET: production_jwt_secret_key_2024_change_me
+      JWT_EXPIRATION_SECONDS: 3600
+      
+      # CORS configuration
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001,https://your-frontend-domain.com
+      
+      # Spring profiles
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ganadi-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+
+networks:
+  ganadi-network:
+    driver: bridge

@@ -1,0 +1,39 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  profiles:
+    active: dev
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ganadi}
+    username: ${DATABASE_USERNAME:ganadi}
+    password: ${DATABASE_PASSWORD:ganadi123}
+    driver-class-name: org.postgresql.Driver
+
+# CORS 설정 (프론트엔드 개발용)
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000}
+  allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+jwt:
+  secret: ${JWT_SECRET:this_is_a_dev_only_secret_change_me}
+  expiration-seconds: 3600
+
+# 로깅 설정
+logging:
+  level:
+    com.ganadi.palmful: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

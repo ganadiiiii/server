@@ -1,0 +1,53 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+README-DEV.md
+DEPLOYMENT.md
+HELP.md
+
+# IDE
+.idea
+.vscode
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Deployment scripts
+deploy-gce.sh
+startup-script.sh
+start-dev.sh
+
+# Test files
+src/test/
+
+# Temporary files
+tmp/
+temp/
