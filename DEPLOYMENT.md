@@ -23,7 +23,7 @@ curl -fsSL https://get.docker.com -o get-docker.sh
 sh get-docker.sh
 ```
 
-## 🐳 로컬 테스트
+##  로컬 테스트
 
 ### 1. Docker Compose로 로컬 테스트
 ```bash
@@ -47,7 +47,7 @@ docker build -t ganadi-app:latest .
 docker run -p 8080:8080 --env-file .env ganadi-app:latest
 ```
 
-## ☁️ GCE 배포
+##  GCE 배포
 
 ### 1. 배포 스크립트 실행
 ```bash
@@ -146,7 +146,7 @@ sudo docker-compose pull app
 sudo docker-compose up -d
 ```
 
-## 🛠️ 문제 해결
+##  문제 해결
 
 ### 1. 서비스가 시작되지 않는 경우
 ```bash
@@ -179,7 +179,7 @@ df -h
 sudo docker system prune -a
 ```
 
-## 📊 모니터링
+##  모니터링
 
 ### 1. 헬스체크 엔드포인트
 - **애플리케이션**: `http://YOUR_IP:8080/actuator/health`
@@ -194,7 +194,7 @@ sudo tail -f /opt/ganadi/logs/ganadi.log
 htop
 ```
 
-## 🔒 보안 설정
+##  보안 설정
 
 ### 1. 방화벽 규칙
 ```bash

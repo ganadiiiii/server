@@ -4,3 +4,6 @@ spring:
     username: ${DB_USER:bloom_user}
     password: ${DB_PASS:secret}
     driver-class-name: org.postgresql.Driver
+
+
+
