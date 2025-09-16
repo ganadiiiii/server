@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface GiftRepository extends JpaRepository<Gift, Long> {
     List<Gift> findByReceiver_IdOrderBySentAtDesc(Long receiverId);
+    List<Gift> findBySender_IdOrderBySentAtDesc(Long senderId);
 }
 
 

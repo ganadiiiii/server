@@ -1,17 +1,12 @@
 package com.ganadi.palmful.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "인증 응답")
 public class AuthResponse {
     
-    @Schema(description = "JWT 토큰", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
     private String token;
     
-    @Schema(description = "토큰 타입", example = "Bearer")
     private String tokenType = "Bearer";
     
-    @Schema(description = "사용자 정보")
     private UserResponse user;
     
     // Constructors

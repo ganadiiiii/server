@@ -1,23 +1,16 @@
 package com.ganadi.palmful.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "꽃 정보 응답")
 public class FlowerResponse {
     
-    @Schema(description = "꽃 ID", example = "1")
     private Long id;
     
-    @Schema(description = "꽃 이름", example = "장미")
     private String name;
     
-    @Schema(description = "색상 코드", example = "#FF0000")
     private String colorHex;
     
-    @Schema(description = "꽃의 의미", example = "사랑과 열정")
     private String meaning;
     
-    @Schema(description = "이미지 URL", example = "https://example.com/rose.jpg")
     private String assetUrl;
     
     // Constructors

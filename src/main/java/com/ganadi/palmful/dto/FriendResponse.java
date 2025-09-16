@@ -1,15 +1,11 @@
 package com.ganadi.palmful.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
-@Schema(description = "친구 정보 응답")
 public class FriendResponse {
     
-    @Schema(description = "친구 사용자 정보")
     private UserResponse user;
     
-    @Schema(description = "친구가 된 날짜", example = "2024-01-01T00:00:00")
     private LocalDateTime createdAt;
     
     // Constructors

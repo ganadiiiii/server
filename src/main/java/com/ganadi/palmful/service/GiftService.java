@@ -49,6 +49,12 @@ public class GiftService {
         return giftRepository.findByReceiver_IdOrderBySentAtDesc(userId)
                 .stream().map(this::toResponse).collect(Collectors.toList());
     }
+    
+    @Transactional(readOnly = true)
+    public List<GiftResponse> getSentGifts(Long userId) {
+        return giftRepository.findBySender_IdOrderBySentAtDesc(userId)
+                .stream().map(this::toResponse).collect(Collectors.toList());
+    }
 
     @Transactional
     public void markAsRead(Long giftId) {

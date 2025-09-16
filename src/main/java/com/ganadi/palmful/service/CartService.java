@@ -1,7 +1,6 @@
 package com.ganadi.palmful.service;
 
 import com.ganadi.palmful.dto.BouquetResponse;
-import com.ganadi.palmful.dto.CartItemRequest;
 import com.ganadi.palmful.dto.CartItemResponse;
 import com.ganadi.palmful.entity.Bouquet;
 import com.ganadi.palmful.entity.CartItem;
@@ -59,6 +58,20 @@ public class CartService {
             throw new IllegalArgumentException("장바구니 아이템이 없습니다: " + id);
         }
         cartItemRepository.deleteById(id);
+    }
+    
+    @Transactional
+    public CartItemResponse updateItem(Long id, Integer quantity) {
+        CartItem item = cartItemRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("장바구니 아이템이 없습니다: " + id));
+        
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
+        }
+        
+        item.setQuantity(quantity);
+        CartItem saved = cartItemRepository.save(item);
+        return toResponse(saved);
     }
 
     private CartItemResponse toResponse(CartItem item) {

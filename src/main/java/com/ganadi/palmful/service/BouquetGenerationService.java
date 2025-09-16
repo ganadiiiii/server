@@ -32,9 +32,9 @@ public class BouquetGenerationService {
     }
 
     @Transactional
-    public GenerationResponse generate(Long bouquetId, GenerationRequest request) {
-        Bouquet bouquet = bouquetRepository.findById(bouquetId)
-                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없습니다: " + bouquetId));
+    public GenerationResponse generate(Long userId, Long bouquetId, GenerationRequest request) {
+        Bouquet bouquet = bouquetRepository.findByIdAndOwnerId(bouquetId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없거나 권한이 없습니다: " + bouquetId));
 
         // 다음 버전 계산 (현재 최대 버전 + 1)
         int nextVersion = generationRepository.findByBouquetId(bouquetId)
@@ -62,9 +62,9 @@ public class BouquetGenerationService {
     }
 
     @Transactional(readOnly = true)
-    public List<GenerationResponse> getGenerations(Long bouquetId) {
-        bouquetRepository.findById(bouquetId)
-                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없습니다: " + bouquetId));
+    public List<GenerationResponse> getGenerations(Long userId, Long bouquetId) {
+        bouquetRepository.findByIdAndOwnerId(bouquetId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없거나 권한이 없습니다: " + bouquetId));
 
         return generationRepository.findByBouquetId(bouquetId)
                 .stream()
@@ -74,9 +74,9 @@ public class BouquetGenerationService {
     }
 
     @Transactional
-    public BouquetResponse publish(Long bouquetId, Long generationId) {
-        Bouquet bouquet = bouquetRepository.findById(bouquetId)
-                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없습니다: " + bouquetId));
+    public BouquetResponse publish(Long userId, Long bouquetId, Long generationId) {
+        Bouquet bouquet = bouquetRepository.findByIdAndOwnerId(bouquetId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("꽃다발을 찾을 수 없거나 권한이 없습니다: " + bouquetId));
 
         BouquetGeneration gen = generationRepository.findById(generationId)
                 .orElseThrow(() -> new IllegalArgumentException("생성 이력을 찾을 수 없습니다: " + generationId));

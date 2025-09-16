@@ -1,30 +1,21 @@
 package com.ganadi.palmful.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
-@Schema(description = "선물 정보 응답")
 public class GiftResponse {
 
-    @Schema(description = "선물 ID", example = "1")
     private Long id;
 
-    @Schema(description = "보낸 사람")
     private UserResponse sender;
 
-    @Schema(description = "받는 사람")
     private UserResponse receiver;
 
-    @Schema(description = "부케 ID", example = "10")
     private Long bouquetId;
 
-    @Schema(description = "메시지", example = "생일 축하해!")
     private String message;
 
-    @Schema(description = "상태", example = "sent")
     private String status;
 
-    @Schema(description = "보낸 시각")
     private LocalDateTime sentAt;
 
     public GiftResponse() {}

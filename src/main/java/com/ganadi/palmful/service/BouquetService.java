@@ -89,6 +89,24 @@ public class BouquetService {
     }
     
     /**
+     * 사용자의 아카이브된 꽃다발 목록 조회 (내가 만든 것 + 받은 것)
+     * @param userId 사용자 ID
+     * @return 아카이브된 꽃다발 목록
+     */
+    @Transactional(readOnly = true)
+    public List<BouquetResponse> getUserArchives(Long userId) {
+        // 내가 만든 아카이브된 꽃다발
+        List<Bouquet> myArchivedBouquets = bouquetRepository.findByOwnerIdAndArchivedAtIsNotNull(userId);
+        
+        // TODO: 받은 꽃다발도 포함 (Gift 엔티티와 연동 필요)
+        // 현재는 내가 만든 아카이브만 반환
+        
+        return myArchivedBouquets.stream()
+                .map(this::convertToBouquetResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 특정 사용자의 꽃다발 목록 조회 (상태 필터링)
      * @param userId 사용자 ID
      * @param status 필터링할 상태 ("active", "archived", "all")

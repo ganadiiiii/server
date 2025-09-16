@@ -24,16 +24,19 @@ public class OrderService {
     private final BouquetRepository bouquetRepository;
     private final UserRepository userRepository;
     private final BouquetService bouquetService;
+    private final UserService userService;
 
     @Autowired
     public OrderService(OrderRepository orderRepository,
                         BouquetRepository bouquetRepository,
                         UserRepository userRepository,
-                        BouquetService bouquetService) {
+                        BouquetService bouquetService,
+                        UserService userService) {
         this.orderRepository = orderRepository;
         this.bouquetRepository = bouquetRepository;
         this.userRepository = userRepository;
         this.bouquetService = bouquetService;
+        this.userService = userService;
     }
 
     @Transactional
@@ -64,8 +67,12 @@ public class OrderService {
 
     private OrderResponse toResponse(Order order) {
         BouquetResponse bouquet = bouquetService.getBouquet(order.getBouquet().getId());
+        UserResponse user = userService.getUserById(order.getUser().getId());
+        
         OrderResponse response = new OrderResponse();
         response.setId(order.getId());
+        response.setUser(user);
+        response.setBouquet(bouquet);
         response.setBouquetId(bouquet.getId());
         response.setTotalPrice(order.getTotalPrice());
         response.setRecipientName(order.getRecipientName());

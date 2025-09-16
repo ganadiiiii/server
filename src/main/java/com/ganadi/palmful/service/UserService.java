@@ -103,6 +103,45 @@ public class UserService {
     }
     
     /**
+     * ID로 사용자 조회
+     * @param id 조회할 사용자 ID
+     * @return 사용자 정보 응답
+     * @throws IllegalArgumentException 사용자를 찾을 수 없을 때
+     */
+    public UserResponse getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id));
+        
+        return convertToUserResponse(user);
+    }
+    
+    /**
+     * 사용자 정보 수정
+     * @param id 사용자 ID
+     * @param request 수정할 정보
+     * @return 수정된 사용자 정보
+     * @throws IllegalArgumentException 사용자를 찾을 수 없을 때
+     */
+    public UserResponse updateUser(Long id, com.ganadi.palmful.dto.UserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id));
+        
+        // 이메일 중복 체크 (다른 사용자가 이미 사용 중인지)
+        if (!user.getEmail().equals(request.getEmail())) {
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
+            }
+        }
+        
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setEmail(request.getEmail());
+        
+        User savedUser = userRepository.save(user);
+        return convertToUserResponse(savedUser);
+    }
+    
+    /**
      * User 엔티티를 UserResponse로 변환
      * @param user 변환할 User 엔티티
      * @return UserResponse

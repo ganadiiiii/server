@@ -47,4 +47,11 @@ public interface BouquetRepository extends JpaRepository<Bouquet, Long> {
      * @return 꽃다발 목록
      */
     List<Bouquet> findByOwnerIdAndStatusNot(Long ownerId, String status);
+    
+    /**
+     * 소유자 ID로 아카이브된 꽃다발 목록 조회
+     * @param ownerId 소유자 ID
+     * @return 아카이브된 꽃다발 목록
+     */
+    List<Bouquet> findByOwnerIdAndArchivedAtIsNotNull(Long ownerId);
 }

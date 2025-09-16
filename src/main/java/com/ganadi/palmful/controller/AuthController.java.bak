@@ -1,0 +1,13 @@
+package com.ganadi.palmful.controller;
+
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    @GetMapping
+    public String getAuth() {
+        return "Hello Auth";
+    }
+}

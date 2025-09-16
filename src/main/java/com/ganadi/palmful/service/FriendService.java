@@ -135,6 +135,37 @@ public class FriendService {
         return requests.stream().map(this::convertToFriendRequestDto).collect(Collectors.toList());
     }
     
+    @Transactional(readOnly = true)
+    public List<FriendResponse> searchFriends(Long userId, String query) {
+        // 현재 사용자와 친구인 사용자들 중에서 검색
+        List<Friendship> friendships = friendshipRepository.findByUser_Id(userId);
+        Set<Long> friendIds = friendships.stream()
+                .map(fs -> fs.getFriend().getId())
+                .collect(Collectors.toSet());
+        
+        if (friendIds.isEmpty()) {
+            return List.of();
+        }
+        
+        // 이름이나 이메일로 검색
+        List<User> users = userRepository.findByIdInAndFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                friendIds, query, query, query);
+        
+        return users.stream().map(user -> {
+            UserResponse userResponse = new UserResponse(
+                    user.getId(), user.getEmail(), user.getFirstName(), 
+                    user.getLastName(), user.getProvider(), user.getCreatedAt()
+            );
+            // 친구가 된 날짜 찾기
+            LocalDateTime friendshipDate = friendships.stream()
+                    .filter(fs -> fs.getFriend().getId().equals(user.getId()))
+                    .findFirst()
+                    .map(Friendship::getCreatedAt)
+                    .orElse(LocalDateTime.now());
+            return new FriendResponse(userResponse, friendshipDate);
+        }).collect(Collectors.toList());
+    }
+    
     private FriendRequestDto convertToFriendRequestDto(FriendRequest request) {
         FriendRequestDto dto = new FriendRequestDto();
         dto.setId(request.getId());

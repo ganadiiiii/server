@@ -14,9 +14,9 @@ spring:
       hibernate:
         format_sql: true
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ganadi}
-    username: ${DATABASE_USERNAME:ganadi}
-    password: ${DATABASE_PASSWORD:ganadi123}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/palmful}
+    username: ${DATABASE_USERNAME:bloom_user}
+    password: ${DATABASE_PASSWORD:secret}
     driver-class-name: org.postgresql.Driver
 
 # CORS 설정 (프론트엔드 개발용)
@@ -37,3 +37,8 @@ logging:
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springdoc: DEBUG
+
+springdoc:
+  packages-to-scan: com.ganadi.palmful.controller
+  paths-to-match: /api/**

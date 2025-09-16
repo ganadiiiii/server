@@ -4,7 +4,6 @@ import com.ganadi.palmful.dto.FlowerResponse;
 import com.ganadi.palmful.entity.Flower;
 import com.ganadi.palmful.repository.FlowerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,8 +21,8 @@ public class FlowerService {
         this.flowerRepository = flowerRepository;
     }
 
-    public List<FlowerResponse> getAllFlowers(Pageable pageable) {
-        return flowerRepository.findAll(pageable)
+    public List<FlowerResponse> getAllFlowers() {
+        return flowerRepository.findAll()
                 .stream()
                 .map(this::toFlowerResponse)
                 .collect(Collectors.toList());

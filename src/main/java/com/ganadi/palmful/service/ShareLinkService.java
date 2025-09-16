@@ -1,7 +1,6 @@
 package com.ganadi.palmful.service;
 
 import com.ganadi.palmful.dto.BouquetResponse;
-import com.ganadi.palmful.dto.UserResponse;
 import com.ganadi.palmful.entity.Bouquet;
 import com.ganadi.palmful.entity.ShareLink;
 import com.ganadi.palmful.entity.User;

@@ -1,6 +1,6 @@
-# 🌸 Ganadi - 개발 서버 가이드
+# Ganadi - 개발 서버 가이드
 
-## 🚀 빠른 시작
+## 빠른 시작
 
 ### 1. 데이터베이스 설정
 ```bash
@@ -28,13 +28,13 @@ cp env.example .env
 ./gradlew bootRun
 ```
 
-## 🌐 접속 정보
+## 접속 정보
 
 - **API 서버**: http://localhost:8080
 - **Swagger UI**: http://localhost:8080/swagger-ui/index.html
 - **API 문서**: http://localhost:8080/v3/api-docs
 
-## 🔧 개발 도구
+## 개발 도구
 
 ### API 테스트
 ```bash
@@ -59,7 +59,7 @@ psql -d ganadi
 SELECT * FROM users;
 ```
 
-## 🛠️ 문제 해결
+## 문제 해결
 
 ### 포트 충돌
 ```bash
@@ -83,7 +83,7 @@ brew services restart postgresql
 - `application.yml`의 `cors.allowed-origins`에 프론트엔드 URL 추가
 - 브라우저 개발자 도구에서 네트워크 탭 확인
 
-## 📱 프론트엔드 연동
+## 프론트엔드 연동
 
 ### CORS 설정
 현재 다음 오리진들이 허용되어 있습니다:
@@ -107,14 +107,14 @@ fetch('/api/bouquets', {
 });
 ```
 
-## 🔄 자동 재시작
+## 자동 재시작
 
 개발 중 코드 변경 시 자동으로 재시작됩니다:
 - Java 파일 변경 시 자동 재컴파일
 - `application.yml` 변경 시 자동 재시작
 - 정적 리소스 변경 시 자동 반영
 
-## 📊 로그 확인
+## 로그 확인
 
 개발 모드에서는 상세한 로그가 출력됩니다:
 - SQL 쿼리 로그

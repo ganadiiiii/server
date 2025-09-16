@@ -1,21 +1,15 @@
 package com.ganadi.palmful.dto;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
-@Schema(description = "장바구니 아이템 응답")
 public class CartItemResponse {
     
-    @Schema(description = "장바구니 아이템 ID", example = "1")
     private Long id;
     
-    @Schema(description = "부케 정보")
     private BouquetResponse bouquet;
     
-    @Schema(description = "수량", example = "1")
     private Integer quantity;
     
-    @Schema(description = "추가일시", example = "2024-01-01T00:00:00")
     private LocalDateTime createdAt;
     
     // Constructors
