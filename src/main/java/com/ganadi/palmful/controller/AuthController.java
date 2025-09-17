@@ -30,7 +30,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @Operation(summary = "회원가입", description = "이메일/비밀번호로 회원가입을 수행합니다.")
+    @Deprecated
+    @Operation(summary = "회원가입(사용 중단)", description = "해당 엔드포인트는 사용 중단되었습니다. 대신 /api/auth/signup 을 사용하세요.", deprecated = true)
     public ResponseEntity<com.ganadi.palmful.dto.UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         try {
             var user = userService.registerUser(request);

@@ -27,6 +27,17 @@ public class GiftController {
         this.currentUserService = currentUserService;
     }
 
+    @GetMapping
+    @Operation(summary = "선물 카탈로그 조회", description = "선물 가능한 꽃다발 카탈로그를 조회합니다.")
+    public ResponseEntity<List<GiftResponse>> getGiftCatalog() {
+        try {
+            List<GiftResponse> catalog = giftService.getGiftCatalog();
+            return ResponseEntity.ok(catalog);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @PostMapping
     @Operation(summary = "선물 보내기", description = "친구에게 꽃다발을 선물로 보냅니다.")
     public ResponseEntity<GiftResponse> sendGift(@Valid @RequestBody GiftRequest request) {

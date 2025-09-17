@@ -1,5 +1,5 @@
 # Multi-stage build for Spring Boot application
-FROM openjdk:21-jdk-slim as builder
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -23,13 +23,13 @@ COPY src src
 RUN ./gradlew build --no-daemon -x test
 
 # Runtime stage
-FROM openjdk:21-jre-slim
+FROM eclipse-temurin:21-jre-alpine
 
 # Set working directory
 WORKDIR /app
 
 # Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
 
 # Copy the built jar from builder stage
 COPY --from=builder /app/build/libs/*.jar app.jar

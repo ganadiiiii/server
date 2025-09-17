@@ -42,3 +42,6 @@ logging:
 springdoc:
   packages-to-scan: com.ganadi.palmful.controller
   paths-to-match: /api/**
+  swagger-ui:
+    tags-sorter: alpha
+    operations-sorter: method

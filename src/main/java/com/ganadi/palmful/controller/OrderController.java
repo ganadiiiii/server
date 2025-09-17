@@ -6,6 +6,7 @@ import com.ganadi.palmful.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +19,22 @@ public class OrderController {
     private final OrderService orderService;
     private final com.ganadi.palmful.service.CurrentUserService currentUserService;
 
+    @Autowired
     public OrderController(OrderService orderService, com.ganadi.palmful.service.CurrentUserService currentUserService) {
         this.orderService = orderService;
         this.currentUserService = currentUserService;
+    }
+
+    @GetMapping
+    @Operation(summary = "내 주문 목록 조회", description = "내가 생성한 주문 목록을 조회합니다.")
+    public ResponseEntity<java.util.List<OrderResponse>> getMyOrders() {
+        try {
+            Long userId = currentUserService.getCurrentUserId();
+            java.util.List<OrderResponse> orders = orderService.getUserOrders(userId);
+            return ResponseEntity.ok(orders);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @PostMapping
@@ -45,10 +59,4 @@ public class OrderController {
         }
     }
 
-    @GetMapping("/users/me/orders")
-    @Operation(summary = "내 주문 목록", description = "내가 생성한 주문 목록을 조회합니다.")
-    public ResponseEntity<java.util.List<OrderResponse>> getMyOrders() {
-        Long userId = currentUserService.getCurrentUserId();
-        return ResponseEntity.ok(orderService.getUserOrders(userId));
-    }
 }

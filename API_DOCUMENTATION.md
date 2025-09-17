@@ -5,7 +5,7 @@
 현재 Ganadi 서버에 구현된 모든 API 엔드포인트의 상세 명세서입니다. 모든 API는 JWT 기반 인증을 사용하며, Swagger UI에서 확인 가능합니다.
 
 **Base URL**: `http://localhost:8080/api`  
-**Swagger UI**: `http://localhost:8080/swagger-ui.html`  
+**Swagger UI**: `http://localhost:8080/swagger-ui/index.html`  
 **API Docs**: `http://localhost:8080/v3/api-docs`
 
 ---
@@ -180,43 +180,31 @@ Authorization: Bearer <token>
 ]
 ```
 
-### 2.5 내 주문 목록 (모의)
+### 2.5 내 주문 목록 (권장 경로)
 ```http
-GET /api/users/me/orders
+GET /api/orders
 Authorization: Bearer <token>
 ```
 
 **Response (200 OK):**
 ```json
-{
-  "content": [],
-  "pageable": {
-    "sort": {
-      "empty": true,
-      "sorted": false,
-      "unsorted": true
-    },
-    "offset": 0,
-    "pageSize": 20,
-    "pageNumber": 0,
-    "paged": true,
-    "unpaged": false
-  },
-  "totalElements": 0,
-  "totalPages": 0,
-  "last": true,
-  "size": 20,
-  "number": 0,
-  "sort": {
-    "empty": true,
-    "sorted": false,
-    "unsorted": true
-  },
-  "numberOfElements": 0,
-  "first": true,
-  "empty": true
-}
+[
+  {
+    "id": 1,
+    "status": "pending",
+    "totalPrice": 50000,
+    "recipientName": "김철수",
+    "phone": "010-1234-5678",
+    "shippingAddr": "서울시 강남구 테헤란로 123",
+    "createdAt": "2024-01-01T00:00:00",
+    "updatedAt": "2024-01-01T00:00:00",
+    "user": { "id": 1, "email": "user@example.com", "firstName": "홍", "lastName": "길동", "provider": "local", "createdAt": "2024-01-01T00:00:00" },
+    "bouquet": { "id": 1, "title": "사랑의 꽃다발", "mood": "romantic", "occasion": "anniversary", "size": "medium", "message": "사랑해요", "status": "active", "previewUrl": "https://example.com/bouquet1.jpg", "createdAt": "2024-01-01T00:00:00", "updatedAt": "2024-01-01T00:00:00", "archivedAt": null }
+  }
+]
 ```
+
+> 참고: 기존 `GET /api/users/me/orders`는 사용 중단(Deprecated)이며, 동일 데이터를 반환하는 별칭으로만 유지될 수 있습니다. 클라이언트는 `GET /api/orders` 사용을 권장합니다.
 
 ---
 
@@ -422,7 +410,7 @@ Authorization: Bearer <token>
 
 ### 4.5 꽃다발 아카이브
 ```http
-POST /api/bouquets/{id}/archive
+PATCH /api/bouquets/{id}/archive
 Authorization: Bearer <token>
 ```
 
@@ -673,7 +661,28 @@ Authorization: Bearer <token>
 
 ## 🎁 7. 선물하기 (Gift Management)
 
-### 7.1 선물 보내기
+### 7.1 선물 카탈로그 (신규)
+```http
+GET /api/gifts
+Authorization: Bearer <token>
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "id": 1,
+    "sender": { "id": 1, "email": "owner@example.com", "firstName": "홍", "lastName": "길동", "provider": "local", "createdAt": "2024-01-01T00:00:00" },
+    "receiver": null,
+    "bouquetId": 1,
+    "message": null,
+    "status": "available",
+    "sentAt": "2024-01-01T00:00:00"
+  }
+]
+```
+
+### 7.2 선물 보내기
 ```http
 POST /api/gifts
 Authorization: Bearer <token>
@@ -716,7 +725,7 @@ Content-Type: application/json
 }
 ```
 
-### 7.2 받은 선물 조회
+### 7.3 받은 선물 조회
 ```http
 GET /api/gifts/received
 Authorization: Bearer <token>
@@ -751,7 +760,7 @@ Authorization: Bearer <token>
 ]
 ```
 
-### 7.3 보낸 선물 조회
+### 7.4 보낸 선물 조회
 ```http
 GET /api/gifts/sent
 Authorization: Bearer <token>
@@ -786,7 +795,7 @@ Authorization: Bearer <token>
 ]
 ```
 
-### 7.4 선물 읽음 처리
+### 7.5 선물 읽음 처리
 ```http
 PATCH /api/gifts/{id}/read
 Authorization: Bearer <token>

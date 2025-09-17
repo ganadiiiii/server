@@ -164,7 +164,7 @@ docker-compose up -d
 
 # 4. 애플리케이션 확인
 # - API 서버: http://localhost:8080
-# - Swagger UI: http://localhost:8080/swagger-ui.html
+# - Swagger UI: http://localhost:8080/swagger-ui/index.html
 # - Health Check: http://localhost:8080/actuator/health
 ```
 
@@ -213,7 +213,7 @@ export SPRING_DATASOURCE_PASSWORD=secret
 - `GET /api/bouquets/{id}` - 꽃다발 조회
 - `PUT /api/bouquets/{id}` - 꽃다발 수정
 - `DELETE /api/bouquets/{id}` - 꽃다발 삭제
-- `POST /api/bouquets/{id}/archive` - 꽃다발 아카이브
+- `PATCH /api/bouquets/{id}/archive` - 꽃다발 아카이브
 
 ### AI 꽃다발 생성
 - `POST /api/bouquets/{id}/generate` - 꽃다발 생성
@@ -221,6 +221,7 @@ export SPRING_DATASOURCE_PASSWORD=secret
 - `POST /api/bouquets/{id}/publish` - 꽃다발 발행
 
 ### 선물하기
+- `GET /api/gifts` - 선물 카탈로그 조회
 - `POST /api/gifts` - 선물 보내기
 - `GET /api/gifts/received` - 받은 선물 조회
 - `GET /api/gifts/sent` - 보낸 선물 조회
@@ -239,6 +240,7 @@ export SPRING_DATASOURCE_PASSWORD=secret
 ### 주문
 - `POST /api/orders` - 주문 생성
 - `GET /api/orders/{id}` - 주문 조회
+- `GET /api/orders` - 내 주문 목록
 
 ### 알림
 - `GET /api/notifications` - 알림 목록 조회

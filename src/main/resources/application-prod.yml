@@ -4,8 +4,6 @@ server:
     context-path: /
 
 spring:
-  profiles:
-    active: prod
   jpa:
     hibernate:
       ddl-auto: update

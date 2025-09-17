@@ -61,6 +61,19 @@ public class BouquetService {
     }
     
     /**
+     * 모든 꽃다발 목록 조회
+     * @return 모든 꽃다발 목록
+     */
+    @Transactional(readOnly = true)
+    public List<BouquetResponse> getAllBouquets() {
+        List<Bouquet> bouquets = bouquetRepository.findAll();
+        
+        return bouquets.stream()
+                .map(this::convertToBouquetResponse)
+                .collect(Collectors.toList());
+    }
+    
+    /**
      * 꽃다발 단일 조회
      * @param id 꽃다발 ID
      * @return 꽃다발 정보

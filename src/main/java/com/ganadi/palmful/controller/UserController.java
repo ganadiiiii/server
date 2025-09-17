@@ -8,8 +8,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,12 +65,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/me/orders")
-    @Operation(summary = "내 주문 목록", description = "모의 주문 목록을 페이지로 반환합니다.")
-    public ResponseEntity<Page<com.ganadi.palmful.dto.OrderResponse>> getMyOrders(Pageable pageable) {
-        // TODO: 실제 주문 목록 조회 로직 구현
-        return ResponseEntity.ok(Page.empty());
-    }
+    // 사용 중단: 주문 목록은 /api/orders 에서 조회하도록 통합
 
     @GetMapping("/me/archives")
     @Operation(summary = "내 아카이브", description = "내가 만든 꽃다발과 받은 꽃다발을 아카이브에서 조회합니다.")

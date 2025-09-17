@@ -22,9 +22,6 @@ Thumbs.db
 # Build artifacts
 build/
 .gradle/
-gradle/
-gradlew
-gradlew.bat
 
 # Logs
 *.log

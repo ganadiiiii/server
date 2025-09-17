@@ -45,6 +45,34 @@ public class GiftService {
     }
 
     @Transactional(readOnly = true)
+    public List<GiftResponse> getGiftCatalog() {
+        // 선물 가능한 꽃다발 목록을 반환 (예: 공개된 꽃다발들)
+        // 현재는 모든 꽃다발을 반환하지만, 실제로는 공개된 것만 필터링해야 함
+        return bouquetRepository.findAll()
+                .stream()
+                .map(bouquet -> {
+                    // 선물 카탈로그용 응답 생성
+                    UserResponse owner = new UserResponse(
+                            bouquet.getOwner().getId(),
+                            bouquet.getOwner().getEmail(),
+                            bouquet.getOwner().getFirstName(),
+                            bouquet.getOwner().getLastName(),
+                            bouquet.getOwner().getProvider(),
+                            bouquet.getOwner().getCreatedAt()
+                    );
+                    return new GiftResponse(
+                            bouquet.getId(), // 임시로 bouquet ID 사용
+                            owner, null, // receiver는 null
+                            bouquet.getId(),
+                            bouquet.getMessage(),
+                            "available", // 카탈로그 상태
+                            bouquet.getCreatedAt()
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<GiftResponse> getReceivedGifts(Long userId) {
         return giftRepository.findByReceiver_IdOrderBySentAtDesc(userId)
                 .stream().map(this::toResponse).collect(Collectors.toList());

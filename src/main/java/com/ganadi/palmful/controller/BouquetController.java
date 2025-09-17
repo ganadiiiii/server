@@ -38,6 +38,18 @@ public class BouquetController {
         }
     }
 
+    @GetMapping
+    @Operation(summary = "내 부케 목록 조회", description = "내가 만든 부케 목록을 조회합니다.")
+    public ResponseEntity<java.util.List<BouquetResponse>> getMyBouquets() {
+        try {
+            Long userId = currentUserService.getCurrentUserId();
+            java.util.List<BouquetResponse> bouquets = bouquetService.getUserBouquets(userId);
+            return ResponseEntity.ok(bouquets);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "부케 단건 조회", description = "부케 ID로 상세 정보를 조회합니다.")
     public ResponseEntity<BouquetResponse> getBouquet(@PathVariable Long id) {
@@ -86,7 +98,8 @@ public class BouquetController {
     }
 
     @GetMapping("/users/me/bouquets")
-    @Operation(summary = "내 부케 목록", description = "상태 필터(active/archived/all)로 내 부케를 조회합니다.")
+    @Deprecated
+    @Operation(summary = "내 부케 목록(사용 중단)", description = "해당 엔드포인트는 사용 중단되었습니다. /api/bouquets 를 사용하세요.", deprecated = true)
     public ResponseEntity<java.util.List<BouquetResponse>> getMyBouquets(
             @RequestParam(value = "status", defaultValue = "all") String status) {
         Long userId = currentUserService.getCurrentUserId();
