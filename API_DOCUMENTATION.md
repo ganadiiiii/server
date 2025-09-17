@@ -12,6 +12,7 @@
 
 ## 🔐 1. 인증 (Authentication)
 
+
 ### 1.1 회원가입
 ```http
 POST /api/auth/signup
