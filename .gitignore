@@ -38,3 +38,6 @@ out/
 
 # Exclude large archives
 ganadi-app*.tar.gz
+
+# Exclude large archives
+ganadi-app*.tar.gz
