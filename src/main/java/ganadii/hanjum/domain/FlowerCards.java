@@ -27,6 +27,7 @@ public class FlowerCards {
     @JoinColumn(name = "creator_id", nullable = false)
     private User creator;
 
+
     @Column(name = "title")
     private String title;
 
@@ -36,8 +37,6 @@ public class FlowerCards {
     @Column(name = "floriography")
     private String floriography;
 
-    @Column(name = "message")
-    private String message;
 
     @Column(name = "who_type")
     private String whoType;
@@ -65,4 +64,5 @@ public class FlowerCards {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
 }

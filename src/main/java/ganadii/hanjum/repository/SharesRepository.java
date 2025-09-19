@@ -15,3 +15,4 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     List<Shares> findByFlowerCards_CardId(Long cardId);
     List<Shares> findByIsReadFalseAndReceiver_UserId(UUID receiverId);
 }
+
