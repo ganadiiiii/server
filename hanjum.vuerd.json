@@ -4,9 +4,9 @@
   "settings": {
     "width": 2000,
     "height": 2000,
-    "scrollTop": -184.2352,
-    "scrollLeft": -238.9523,
-    "zoomLevel": 0.8,
+    "scrollTop": -276.7311,
+    "scrollLeft": -290.0941,
+    "zoomLevel": 0.72,
     "show": 511,
     "database": 16,
     "databaseName": "hanjum",
@@ -296,15 +296,15 @@
           "T116ET2GhhzzYk1mVrpLc"
         ],
         "ui": {
-          "x": 869.1941,
-          "y": 541.9275,
+          "x": 939.1941,
+          "y": 559.4275,
           "zIndex": 614,
           "widthName": 60,
           "widthComment": 60,
           "color": ""
         },
         "meta": {
-          "updateAt": 1758135938098,
+          "updateAt": 1758211688269,
           "createAt": 1758129302442
         }
       }
@@ -1553,20 +1553,20 @@
       "hT_tWhTD62n3O9h40IRXa": {
         "id": "hT_tWhTD62n3O9h40IRXa",
         "tableId": "S3bt_uTPHQye7jsvfJL30",
-        "name": "sender_id",
+        "name": "receiver_id",
         "comment": "받은 사용자 ID",
         "dataType": "UUID",
         "default": "",
         "options": 8,
         "ui": {
           "keys": 2,
-          "widthName": 60,
+          "widthName": 64,
           "widthComment": 73,
           "widthDataType": 60,
           "widthDefault": 60
         },
         "meta": {
-          "updateAt": 1758136720229,
+          "updateAt": 1758211705187,
           "createAt": 1758135909559
         }
       }
@@ -1731,8 +1731,8 @@
           "columnIds": [
             "eZGsJFLNRqq9zcb4yWZTn"
           ],
-          "x": 869.1941,
-          "y": 708.5941666666666,
+          "x": 939.1941,
+          "y": 726.0941666666665,
           "direction": 1
         },
         "meta": {
@@ -1759,8 +1759,8 @@
           "columnIds": [
             "qaV1hw1jP_NwRzheR82ZM"
           ],
-          "x": 869.1941,
-          "y": 575.2608333333334,
+          "x": 939.1941,
+          "y": 592.7608333333333,
           "direction": 1
         },
         "meta": {
@@ -1871,8 +1871,8 @@
           "columnIds": [
             "hT_tWhTD62n3O9h40IRXa"
           ],
-          "x": 869.1941,
-          "y": 641.9275,
+          "x": 939.1941,
+          "y": 659.4274999999999,
           "direction": 1
         },
         "meta": {
