@@ -8,6 +8,12 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
+import ganadii.hanjum.domain.enums.WhoType;
+import ganadii.hanjum.domain.enums.WhenType;
+import ganadii.hanjum.domain.enums.EmotionType;
+import ganadii.hanjum.domain.converter.WhoTypeConverter;
+import ganadii.hanjum.domain.converter.WhenTypeConverter;
+import ganadii.hanjum.domain.converter.EmotionTypeConverter;
 
 @Getter
 @Setter
@@ -38,14 +44,17 @@ public class FlowerCards {
     private String floriography;
 
 
+    @Convert(converter = WhoTypeConverter.class)
     @Column(name = "who_type")
-    private String whoType;
+    private WhoType whoType;
 
+    @Convert(converter = WhenTypeConverter.class)
     @Column(name = "when_type")
-    private String whenType;
+    private WhenType whenType;
 
+    @Convert(converter = EmotionTypeConverter.class)
     @Column(name = "emotion_type")
-    private String emotionType;
+    private EmotionType emotionType;
 
     @Column(name = "bouquet_size")
     private String bouquetSize;
