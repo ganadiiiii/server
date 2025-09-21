@@ -30,10 +30,21 @@ public class ShareDtos {
 
     public record SimpleUser(UUID userId, String nickname) {}
 
-    public record SimpleCard(Long cardId, String title, String imageUrl) {}
+    public record SimpleCard(
+            Long cardId,
+            String title,
+            String imageUrl,
+            String whoType,
+            String whoLabel,
+            String whenType,
+            String whenLabel,
+            String emotionType,
+            String emotionLabel,
+            String bouquetSize,
+            String bouquetLabel
+    ) {}
 
     public record ArchiveResponse(List<ShareResponse> items, int page, int size, long totalElements, int totalPages) {}
 
     public record ArchiveMetaResponse(boolean hasPendingFriendRequests) {}
 }
-

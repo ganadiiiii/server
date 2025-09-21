@@ -98,7 +98,19 @@ public class ShareController {
                 s.getSharedAt(),
                 new ShareDtos.SimpleUser(s.getSender().getUserId(), s.getSender().getNickname()),
                 new ShareDtos.SimpleUser(s.getReceiver().getUserId(), s.getReceiver().getNickname()),
-                new ShareDtos.SimpleCard(s.getFlowerCards().getCardId(), s.getFlowerCards().getTitle(), s.getFlowerCards().getImageUrl())
+                new ShareDtos.SimpleCard(
+                        s.getFlowerCards().getCardId(),
+                        s.getFlowerCards().getTitle(),
+                        s.getFlowerCards().getImageUrl(),
+                        s.getFlowerCards().getWhoType() == null ? null : s.getFlowerCards().getWhoType().name(),
+                        s.getFlowerCards().getWhoType() == null ? null : s.getFlowerCards().getWhoType().getLabel(),
+                        s.getFlowerCards().getWhenType() == null ? null : s.getFlowerCards().getWhenType().name(),
+                        s.getFlowerCards().getWhenType() == null ? null : s.getFlowerCards().getWhenType().getLabel(),
+                        s.getFlowerCards().getEmotionType() == null ? null : s.getFlowerCards().getEmotionType().name(),
+                        s.getFlowerCards().getEmotionType() == null ? null : s.getFlowerCards().getEmotionType().getLabel(),
+                        s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().name(),
+                        s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel()
+                )
         );
     }
 }
