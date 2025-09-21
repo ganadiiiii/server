@@ -62,7 +62,7 @@ public class FriendRequestService {
 
     @Transactional
     public FriendRequest accept(Long requestId, UUID receiverId) {
-        FriendRequest req = friendRequestRepository.findByIdAndReceiver_UserId(requestId, receiverId)
+        FriendRequest req = friendRequestRepository.findByRequestIdAndReceiver_UserId(requestId, receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
         if (req.getStatus() != FriendRequestStatus.PENDING) {
             throw new IllegalStateException("Request is not pending");
@@ -83,7 +83,7 @@ public class FriendRequestService {
 
     @Transactional
     public FriendRequest reject(Long requestId, UUID receiverId) {
-        FriendRequest req = friendRequestRepository.findByIdAndReceiver_UserId(requestId, receiverId)
+        FriendRequest req = friendRequestRepository.findByRequestIdAndReceiver_UserId(requestId, receiverId)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
         if (req.getStatus() != FriendRequestStatus.PENDING) {
             throw new IllegalStateException("Request is not pending");
@@ -93,4 +93,3 @@ public class FriendRequestService {
         return req;
     }
 }
-
