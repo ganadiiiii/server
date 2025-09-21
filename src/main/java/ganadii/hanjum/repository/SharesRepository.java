@@ -16,7 +16,7 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     List<Shares> findBySender_UserId(UUID senderId);
     List<Shares> findByReceiver_UserId(UUID receiverId);
     List<Shares> findByFlowerCards_CardId(Long cardId);
-    List<Shares> findByIsReadFalseAndReceiver_UserId(UUID receiverId);
+    List<Shares> findByReceiver_UserIdAndIsReadIsFalse(UUID receiverId);
     Page<Shares> findByReceiver_UserId(UUID receiverId, Pageable pageable);
     Optional<Shares> findFirstByFlowerCards_CardId(Long cardId);
     Optional<Shares> findBySender_UserIdAndReceiver_UserIdAndFlowerCards_CardId(UUID senderId, UUID receiverId, Long cardId);
