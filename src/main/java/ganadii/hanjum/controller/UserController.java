@@ -1,8 +1,9 @@
-package ganadii.hanjum.web;
+package ganadii.hanjum.controller;
 
 import ganadii.hanjum.domain.User;
 import ganadii.hanjum.repository.UserRepository;
-import ganadii.hanjum.web.dto.AuthDtos;
+import ganadii.hanjum.dto.AuthDtos;
+import ganadii.hanjum.web.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,4 +26,3 @@ public class UserController {
         return ResponseEntity.ok(new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getNickname()));
     }
 }
-

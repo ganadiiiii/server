@@ -1,4 +1,4 @@
-package ganadii.hanjum.web.dto;
+package ganadii.hanjum.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

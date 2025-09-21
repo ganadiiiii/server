@@ -1,11 +1,12 @@
-package ganadii.hanjum.web;
+package ganadii.hanjum.controller;
 
 import ganadii.hanjum.domain.Shares;
 import ganadii.hanjum.repository.FriendRequestRepository;
 import ganadii.hanjum.domain.enums.FriendRequestStatus;
 import ganadii.hanjum.repository.SharesRepository;
 import ganadii.hanjum.service.ShareService;
-import ganadii.hanjum.web.dto.ShareDtos;
+import ganadii.hanjum.dto.ShareDtos;
+import ganadii.hanjum.web.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

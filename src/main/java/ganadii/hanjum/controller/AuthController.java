@@ -1,10 +1,10 @@
-package ganadii.hanjum.web;
+package ganadii.hanjum.controller;
 
 import ganadii.hanjum.domain.User;
 import ganadii.hanjum.repository.UserRepository;
 import ganadii.hanjum.security.JwtTokenProvider;
 import ganadii.hanjum.service.AuthService;
-import ganadii.hanjum.web.dto.AuthDtos;
+import ganadii.hanjum.dto.AuthDtos;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
