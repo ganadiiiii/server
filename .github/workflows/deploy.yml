@@ -47,12 +47,10 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           timeout: 120s
           script: |
-            # 환경변수 export
             export SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
             export DB_URL=${{ secrets.DB_URL }}
             export DB_USERNAME=${{ secrets.DB_USERNAME }}
             export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
 
-            # 배포 스크립트 실행
             bash /home/ec2-user/hanjum/deploy.sh
