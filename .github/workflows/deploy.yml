@@ -31,7 +31,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           source: "build/libs/*.jar"
-          target: "/home/ec2-user/hanjum/build/libs"
+          target: "/home/ec2-user/hanjum"
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
