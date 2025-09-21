@@ -1,5 +1,11 @@
 package ganadii.hanjum.domain;
 
+import ganadii.hanjum.domain.enums.CardImageSource;
+import ganadii.hanjum.domain.enums.WhoType;
+import ganadii.hanjum.domain.enums.WhenType;
+import ganadii.hanjum.domain.enums.EmotionType;
+// store enum names in DB for stability and i18n-friendly labels at UI
+import ganadii.hanjum.domain.enums.BouquetSize;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -8,11 +14,6 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.List;
-import ganadii.hanjum.domain.enums.WhoType;
-import ganadii.hanjum.domain.enums.WhenType;
-import ganadii.hanjum.domain.enums.EmotionType;
-// store enum names in DB for stability and i18n-friendly labels at UI
-import ganadii.hanjum.domain.enums.BouquetSize;
 
 @Getter
 @Setter
@@ -38,6 +39,14 @@ public class FlowerCards {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_source")
+    private CardImageSource imageSource;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "design_asset_id")
+    private CardDesignAsset designAsset;
 
     @Column(name = "floriography")
     private String floriography;
