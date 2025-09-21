@@ -1,21 +1,13 @@
-# .github/workflows/deploy.yml
-
 name: Hanjum Project CI/CD with Gradle
 
-# 1. 언제 이 워크플로우를 실행할 것인가?
-# main 브랜치에 push 이벤트가 발생했을 때
 on:
   push:
     branches: [ "main" ]
 
-# 2. 어떤 작업(Job)들을 수행할 것인가?
 jobs:
   build-and-deploy:
-    # 3. 어떤 환경에서 실행할 것인가?
-    # 최신 우분투 환경에서 실행
     runs-on: ubuntu-latest
 
-    # 4. 세부 실행 단계(Steps)는 무엇인가?
     steps:
       # 소스 코드 체크아웃
       - name: Checkout
@@ -28,12 +20,11 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # gradlew 파일에 실행 권한 부여
+      # gradlew 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      # Gradle로 프로젝트 빌드
-      # 해커톤에서는 빠른 배포를 위해 '-x test' 옵션으로 테스트를 건너뜁니다.
+      # Gradle 빌드 (테스트는 제외)
       - name: Build with Gradle
         run: ./gradlew build -x test
 
@@ -44,27 +35,27 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-          source: "build/libs/*.jar" # 빌드된 JAR 파일 경로
-          target: "/home/ec2-user/hanjum" # EC2 서버에 JAR 파일을 저장할 경로
+          source: "build/libs/*.jar"
+          target: "/home/ec2-user/hanjum/build/libs"
 
-      # EC2 서버에 접속하여 배포 스크립트 실행
+      # EC2 서버에서 애플리케이션 실행
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          timeout: 120s
           script: |
-            # EC2 서버에서 사용할 환경 변수를 직접 export
-            export SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
-            export DB_URL=${{ secrets.DB_URL }}
-            export DB_USERNAME=${{ secrets.DB_USERNAME }}
-            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            # 기존 실행 중인 프로세스 종료 (없으면 무시)
+            pgrep -f 'hanjum-0.0.1-SNAPSHOT.jar' | xargs -r kill -9 || true
 
-            # 기존에 실행 중인 Java 프로세스 종료
-            pgrep -f 'ganadii.*\.jar' | xargs -r kill -9
-            
-            # 새 애플리케이션을 백그라운드에서 실행 (로그는 app.log에 저장)
-            nohup java -jar /home/ec2-user/hanjum/build/libs/*.jar \
-            > /home/ec2-user/hanjum/app.log 2>&1 &
+            # 새로운 애플리케이션 실행 (세션 분리 + 로그 리다이렉트)
+            setsid nohup java \
+              -Dspring.profiles.active=${{ secrets.SPRING_PROFILES_ACTIVE }} \
+              -Ddb.url=${{ secrets.DB_URL }} \
+              -Ddb.username=${{ secrets.DB_USERNAME }} \
+              -Ddb.password=${{ secrets.DB_PASSWORD }} \
+              -Djwt.secret=${{ secrets.JWT_SECRET }} \
+              -jar /home/ec2-user/hanjum/build/libs/hanjum-0.0.1-SNAPSHOT.jar \
+              > /home/ec2-user/hanjum/app.log 2>&1 < /dev/null &
