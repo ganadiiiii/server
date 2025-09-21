@@ -11,9 +11,8 @@ import java.util.List;
 import ganadii.hanjum.domain.enums.WhoType;
 import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.domain.enums.EmotionType;
-import ganadii.hanjum.domain.converter.WhoTypeConverter;
-import ganadii.hanjum.domain.converter.WhenTypeConverter;
-import ganadii.hanjum.domain.converter.EmotionTypeConverter;
+// store enum names in DB for stability and i18n-friendly labels at UI
+import ganadii.hanjum.domain.enums.BouquetSize;
 
 @Getter
 @Setter
@@ -44,20 +43,21 @@ public class FlowerCards {
     private String floriography;
 
 
-    @Convert(converter = WhoTypeConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "who_type")
     private WhoType whoType;
 
-    @Convert(converter = WhenTypeConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "when_type")
     private WhenType whenType;
 
-    @Convert(converter = EmotionTypeConverter.class)
+    @Enumerated(EnumType.STRING)
     @Column(name = "emotion_type")
     private EmotionType emotionType;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "bouquet_size")
-    private String bouquetSize;
+    private BouquetSize bouquetSize;
 
     @Column(name = "price")
     private Integer price;
