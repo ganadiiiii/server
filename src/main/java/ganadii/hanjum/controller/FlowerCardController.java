@@ -3,6 +3,8 @@ package ganadii.hanjum.controller;
 import ganadii.hanjum.dto.FlowerCardDtos;
 import ganadii.hanjum.service.FlowerCardService;
 import ganadii.hanjum.web.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,11 +24,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/cards")
 @RequiredArgsConstructor
+@Tag(name = "03-카드", description = "꽃 카드 생성 및 조회")
 public class FlowerCardController {
 
     private final FlowerCardService flowerCardService;
 
     @PostMapping
+    @Operation(summary = "카드 생성", description = "입력 조합으로 꽃 카드를 생성합니다.")
     public ResponseEntity<FlowerCardDtos.CardResponse> createCard(
             @Valid @RequestBody FlowerCardDtos.CreateCardRequest request,
             @RequestHeader(name = "X-User-Id", required = false) String userHeader
@@ -37,6 +41,7 @@ public class FlowerCardController {
     }
 
     @GetMapping
+    @Operation(summary = "내 카드 목록", description = "내가 만든 꽃 카드 목록을 페이지로 조회합니다.")
     public ResponseEntity<FlowerCardDtos.CardPageResponse> myCards(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -48,6 +53,7 @@ public class FlowerCardController {
     }
 
     @GetMapping("/{cardId}")
+    @Operation(summary = "카드 상세", description = "선택한 꽃 카드의 상세 정보를 조회합니다.")
     public ResponseEntity<FlowerCardDtos.CardResponse> myCard(
             @PathVariable Long cardId,
             @RequestHeader(name = "X-User-Id", required = false) String userHeader
@@ -58,6 +64,7 @@ public class FlowerCardController {
     }
 
     @DeleteMapping("/{cardId}")
+    @Operation(summary = "카드 삭제", description = "아직 공유하지 않은 내 카드를 삭제합니다.")
     public ResponseEntity<Void> deleteCard(
             @PathVariable Long cardId,
             @RequestHeader(name = "X-User-Id", required = false) String userHeader

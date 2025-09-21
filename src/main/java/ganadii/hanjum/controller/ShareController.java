@@ -1,19 +1,28 @@
 package ganadii.hanjum.controller;
 
 import ganadii.hanjum.domain.Shares;
-import ganadii.hanjum.repository.FriendRequestRepository;
 import ganadii.hanjum.domain.enums.FriendRequestStatus;
+import ganadii.hanjum.dto.ShareDtos;
+import ganadii.hanjum.repository.FriendRequestRepository;
 import ganadii.hanjum.repository.SharesRepository;
 import ganadii.hanjum.service.ShareService;
-import ganadii.hanjum.dto.ShareDtos;
 import ganadii.hanjum.web.SecurityUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +30,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@Tag(name = "04-공유", description = "카드 공유/아카이브")
 public class ShareController {
 
     private final ShareService shareService;
@@ -28,6 +38,7 @@ public class ShareController {
     private final FriendRequestRepository friendRequestRepository;
 
     @PostMapping("/cards/{cardId}/send/self")
+    @Operation(summary = "나에게 보내기", description = "내 카드 아카이브에 저장합니다.")
     public ResponseEntity<ShareDtos.ShareResponse> sendToSelf(@PathVariable Long cardId,
                                                               @RequestHeader(name = "X-User-Id", required = false) String userHeader,
                                                               @RequestHeader(name = "Idempotency-Key", required = false) String idemKey) {
@@ -44,6 +55,7 @@ public class ShareController {
     }
 
     @PostMapping("/cards/{cardId}/send")
+    @Operation(summary = "친구에게 보내기", description = "카드를 친구에게 전송하고 아카이브에 기록합니다.")
     public ResponseEntity<ShareDtos.ShareResponse> sendToFriend(@PathVariable Long cardId,
                                                                 @Valid @RequestBody ShareDtos.SendShareRequest req,
                                                                 @RequestHeader(name = "X-User-Id", required = false) String userHeader,
@@ -60,6 +72,7 @@ public class ShareController {
     }
 
     @GetMapping("/archive")
+    @Operation(summary = "내 아카이브", description = "받은 카드 아카이브를 페이지로 조회합니다.")
     public ResponseEntity<ShareDtos.ArchiveResponse> archive(@RequestParam(defaultValue = "0") int page,
                                                              @RequestParam(defaultValue = "15") int size,
                                                              @RequestHeader(name = "X-User-Id", required = false) String userHeader) {
@@ -74,6 +87,7 @@ public class ShareController {
     }
 
     @GetMapping("/archive/meta")
+    @Operation(summary = "아카이브 메타", description = "친구 요청이 있는지 여부를 확인합니다.")
     public ResponseEntity<ShareDtos.ArchiveMetaResponse> archiveMeta(@RequestHeader(name = "X-User-Id", required = false) String userHeader) {
         UUID userId = resolveUserId(userHeader);
         boolean exists = friendRequestRepository.existsByReceiver_UserIdAndStatus(userId, FriendRequestStatus.PENDING);
