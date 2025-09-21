@@ -185,3 +185,10 @@ AGENTS.md
 
 # SQL
 *.sql
+
+# useless docs
+swagger.md
+card-image-caching.md
+
+# Test
+/src/test/java/
