@@ -28,8 +28,16 @@ public class ShareController {
 
     @PostMapping("/cards/{cardId}/send/self")
     public ResponseEntity<ShareDtos.ShareResponse> sendToSelf(@PathVariable Long cardId,
-                                                              @RequestHeader(name = "X-User-Id", required = false) String userHeader) {
+                                                              @RequestHeader(name = "X-User-Id", required = false) String userHeader,
+                                                              @RequestHeader(name = "Idempotency-Key", required = false) String idemKey) {
         UUID userId = resolveUserId(userHeader);
+        // Idempotency: if already shared, return existing
+        if (idemKey != null && !idemKey.isBlank()) {
+            var existing = sharesRepository.findFirstByFlowerCards_CardId(cardId);
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(toResponse(existing.get()));
+            }
+        }
         Shares s = shareService.sendToSelf(userId, cardId);
         return ResponseEntity.ok(toResponse(s));
     }
@@ -37,8 +45,15 @@ public class ShareController {
     @PostMapping("/cards/{cardId}/send")
     public ResponseEntity<ShareDtos.ShareResponse> sendToFriend(@PathVariable Long cardId,
                                                                 @Valid @RequestBody ShareDtos.SendShareRequest req,
-                                                                @RequestHeader(name = "X-User-Id", required = false) String userHeader) {
+                                                                @RequestHeader(name = "X-User-Id", required = false) String userHeader,
+                                                                @RequestHeader(name = "Idempotency-Key", required = false) String idemKey) {
         UUID senderId = resolveUserId(userHeader);
+        if (idemKey != null && !idemKey.isBlank()) {
+            var existing = sharesRepository.findFirstByFlowerCards_CardId(cardId);
+            if (existing.isPresent()) {
+                return ResponseEntity.ok(toResponse(existing.get()));
+            }
+        }
         Shares s = shareService.sendToFriend(senderId, cardId, req.receiverId(), req.toName(), req.fromName(), req.note());
         return ResponseEntity.ok(toResponse(s));
     }
@@ -86,4 +101,3 @@ public class ShareController {
         );
     }
 }
-

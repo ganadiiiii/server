@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 @Repository
 @SuppressWarnings("unused")
@@ -17,4 +18,6 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     List<Shares> findByFlowerCards_CardId(Long cardId);
     List<Shares> findByIsReadFalseAndReceiver_UserId(UUID receiverId);
     Page<Shares> findByReceiver_UserId(UUID receiverId, Pageable pageable);
+    Optional<Shares> findFirstByFlowerCards_CardId(Long cardId);
+    Optional<Shares> findBySender_UserIdAndReceiver_UserIdAndFlowerCards_CardId(UUID senderId, UUID receiverId, Long cardId);
 }

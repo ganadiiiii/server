@@ -27,6 +27,11 @@ public class ShareService {
         FlowerCards card = flowerCardsRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
 
+        // a card can be sent only once
+        sharesRepository.findFirstByFlowerCards_CardId(cardId).ifPresent(s -> {
+            throw new IllegalStateException("Card already sent");
+        });
+
         Shares share = Shares.builder()
                 .flowerCards(card)
                 .sender(sender)
@@ -48,6 +53,11 @@ public class ShareService {
                 .orElseThrow(() -> new IllegalArgumentException("Receiver not found"));
         FlowerCards card = flowerCardsRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
+
+        // a card can be sent only once
+        sharesRepository.findFirstByFlowerCards_CardId(cardId).ifPresent(s -> {
+            throw new IllegalStateException("Card already sent");
+        });
 
         String finalTo = resolveName(toName, receiver.getNickname());
         String finalFrom = resolveName(fromName, sender.getNickname());
@@ -95,4 +105,3 @@ public class ShareService {
         }
     }
 }
-
