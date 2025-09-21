@@ -13,4 +13,6 @@ public interface FriendshipsRepository extends JpaRepository<Friendships, Long> 
     List<Friendships> findByUser_UserId(UUID userId);
     List<Friendships> findByFriend_UserId(UUID friendId);
     boolean existsByUser_UserIdAndFriend_UserId(UUID userId, UUID friendId);
+    void deleteByUser_UserIdAndFriend_UserId(UUID userId, UUID friendId);
+    long countByUser_UserId(UUID userId);
 }
