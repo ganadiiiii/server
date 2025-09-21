@@ -54,14 +54,16 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
+          env:
+            SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
+            DB_URL: ${{ secrets.DB_URL }}
+            DB_USERNAME: ${{ secrets.DB_USERNAME }}
+            DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+            JWT_SECRET: ${{ secrets.JWT_SECRET }}
           script: |
             # 기존에 실행 중인 Java 프로세스 종료
             pgrep -f 'ganadii.*\.jar' | xargs -r kill -9
             
             # 새 애플리케이션을 백그라운드에서 실행 (로그는 app.log에 저장)
             nohup java -jar /home/ec2-user/hanjum/*.jar \
-            --spring.datasource.url=${{ secrets.DB_URL }} \
-            --spring.datasource.username=${{ secrets.DB_USERNAME }} \
-            --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
-            --jwt.secret=${{ secrets.JWT_SECRET }} \
             > /home/ec2-user/hanjum/app.log 2>&1 &
