@@ -54,13 +54,14 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
-        env:
-          SPRING_PROFILES_ACTIVE: ${{ secrets.SPRING_PROFILES_ACTIVE }}
-          DB_URL: ${{ secrets.DB_URL }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           script: |
+            # EC2 서버에서 사용할 환경 변수를 직접 export
+            export SPRING_PROFILES_ACTIVE=${{ secrets.SPRING_PROFILES_ACTIVE }}
+            export DB_URL=${{ secrets.DB_URL }}
+            export DB_USERNAME=${{ secrets.DB_USERNAME }}
+            export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+            export JWT_SECRET=${{ secrets.JWT_SECRET }}
+
             # 기존에 실행 중인 Java 프로세스 종료
             pgrep -f 'ganadii.*\.jar' | xargs -r kill -9
             
