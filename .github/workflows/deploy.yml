@@ -45,7 +45,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           source: "build/libs/*.jar" # 빌드된 JAR 파일 경로
-          target: "/home/ubuntu/hanjum" # EC2 서버에 JAR 파일을 저장할 경로
+          target: "/home/ec2-user/hanjum" # EC2 서버에 JAR 파일을 저장할 경로
 
       # EC2 서버에 접속하여 배포 스크립트 실행
       - name: Deploy to EC2
@@ -59,9 +59,9 @@ jobs:
             pgrep -f 'ganadii.*\.jar' | xargs -r kill -9
             
             # 새 애플리케이션을 백그라운드에서 실행 (로그는 app.log에 저장)
-            nohup java -jar /home/ubuntu/hanjum/*.jar \
+            nohup java -jar /home/ec2-user/hanjum/*.jar \
             --spring.datasource.url=${{ secrets.DB_URL }} \
             --spring.datasource.username=${{ secrets.DB_USERNAME }} \
             --spring.datasource.password=${{ secrets.DB_PASSWORD }} \
             --jwt.secret=${{ secrets.JWT_SECRET }} \
-            > /home/ubuntu/hanjum/app.log 2>&1 &
+            > /home/ec2-user/hanjum/app.log 2>&1 &
