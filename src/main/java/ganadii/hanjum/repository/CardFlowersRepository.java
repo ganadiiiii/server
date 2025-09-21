@@ -5,6 +5,7 @@ import ganadii.hanjum.domain.CardFlowersId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -14,4 +15,6 @@ public interface CardFlowersRepository extends JpaRepository<CardFlowers, CardFl
     List<CardFlowers> findById_FlowerId(Long flowerId);
     List<CardFlowers> findByFlowerCards_CardId(Long cardId);
     List<CardFlowers> findByFlowers_FlowerId(Long flowerId);
+    List<CardFlowers> findByFlowerCards_CardIdIn(Collection<Long> cardIds);
+    void deleteByFlowerCards_CardId(Long cardId);
 }

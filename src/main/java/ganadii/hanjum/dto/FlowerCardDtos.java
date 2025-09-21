@@ -40,6 +40,14 @@ public class FlowerCardDtos {
             FlowerSummary mainFlower
     ) {}
 
+    public record CardPageResponse(
+            List<CardResponse> cards,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages
+    ) {}
+
     public record FlowerSummary(
             Long flowerId,
             String koreanName,
