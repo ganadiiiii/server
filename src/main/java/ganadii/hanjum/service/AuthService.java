@@ -19,14 +19,15 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
-    public User signup(String email, String rawPassword, String nickname) {
+    public User signup(String email, String rawPassword, String firstName, String lastName) {
         userRepository.findByEmail(email).ifPresent(u -> {
             throw new IllegalArgumentException("Email already in use");
         });
         User user = User.builder()
                 .email(email)
                 .password(passwordEncoder.encode(rawPassword))
-                .nickname(nickname)
+                .firstName(firstName)
+                .lastName(lastName)
                 .build();
         return userRepository.save(user);
     }
@@ -63,4 +64,3 @@ public class AuthService {
 
     public record TokenPair(String accessToken, String refreshToken) {}
 }
-

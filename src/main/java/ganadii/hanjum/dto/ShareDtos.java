@@ -28,7 +28,7 @@ public class ShareDtos {
             SimpleCard card
     ) {}
 
-    public record SimpleUser(UUID userId, String nickname) {}
+    public record SimpleUser(UUID userId, String firstName, String lastName) {}
 
     public record SimpleCard(
             Long cardId,

@@ -12,9 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +32,9 @@ public class FriendsService {
         // Load all friend users and paginate in-memory (small-to-mid size lists)
         List<User> all = new java.util.ArrayList<>();
         userRepository.findAllById(friendIds).forEach(all::add);
-        all.sort((a, b) -> a.getNickname().compareToIgnoreCase(b.getNickname()));
+        all.sort(java.util.Comparator
+                .comparing(User::getLastName, String.CASE_INSENSITIVE_ORDER)
+                .thenComparing(User::getFirstName, String.CASE_INSENSITIVE_ORDER));
         int total = all.size();
         int from = Math.min(page * size, total);
         int to = Math.min(from + size, total);

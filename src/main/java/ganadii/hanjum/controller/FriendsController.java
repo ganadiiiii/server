@@ -29,7 +29,7 @@ public class FriendsController {
         UUID userId = SecurityUtils.currentUserIdOrThrow();
         Page<User> p = friendsService.listFriends(userId, page, size);
         List<FriendDtos.FriendSummary> items = p.getContent().stream()
-                .map(u -> new FriendDtos.FriendSummary(u.getUserId(), u.getEmail(), u.getNickname(), friendsService.friendCount(u.getUserId())))
+                .map(u -> new FriendDtos.FriendSummary(u.getUserId(), u.getEmail(), u.getFirstName(), u.getLastName(), friendsService.friendCount(u.getUserId())))
                 .toList();
         return ResponseEntity.ok(new FriendDtos.FriendListResponse(items, p.getNumber(), p.getSize(), p.getTotalElements(), p.getTotalPages()));
     }
@@ -43,7 +43,7 @@ public class FriendsController {
         Page<User> p = friendsService.searchUsers(userId, q, page, size);
         var friendIds = friendsService.friendIds(userId);
         List<FriendDtos.SearchItem> items = p.getContent().stream().map(u -> new FriendDtos.SearchItem(
-                u.getUserId(), u.getEmail(), u.getNickname(), friendIds.contains(u.getUserId()), friendsService.friendCount(u.getUserId())
+                u.getUserId(), u.getEmail(), u.getFirstName(), u.getLastName(), friendIds.contains(u.getUserId()), friendsService.friendCount(u.getUserId())
         )).toList();
         return ResponseEntity.ok(new FriendDtos.SearchResponse(items, p.getNumber(), p.getSize(), p.getTotalElements(), p.getTotalPages()));
     }

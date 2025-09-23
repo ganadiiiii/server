@@ -28,12 +28,12 @@ public class AuthController {
     private final UserRepository userRepository;
 
     @PostMapping("/signup")
-    @Operation(summary = "회원 가입", description = "이메일과 닉네임으로 신규 사용자를 등록합니다.")
+    @Operation(summary = "회원 가입", description = "이메일과 이름으로 신규 사용자를 등록합니다.")
     public ResponseEntity<AuthDtos.AuthResponse> signup(@Valid @RequestBody AuthDtos.SignupRequest req) {
-        User user = authService.signup(req.email(), req.password(), req.nickname());
+        User user = authService.signup(req.email(), req.password(), req.firstName(), req.lastName());
         var tokens = authService.issueTokens(user);
         return ResponseEntity.ok(new AuthDtos.AuthResponse(tokens.accessToken(), tokens.refreshToken(),
-                new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getNickname())));
+                new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getFirstName(), user.getLastName())));
     }
 
     @PostMapping("/login")
@@ -42,7 +42,7 @@ public class AuthController {
         User user = authService.login(req.email(), req.password());
         var tokens = authService.issueTokens(user);
         return ResponseEntity.ok(new AuthDtos.AuthResponse(tokens.accessToken(), tokens.refreshToken(),
-                new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getNickname())));
+                new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getFirstName(), user.getLastName())));
     }
 
     @PostMapping("/refresh")
@@ -52,7 +52,7 @@ public class AuthController {
         var claims = jwtTokenProvider.parse(req.refreshToken());
         UUID userId = UUID.fromString(claims.getSubject());
         User user = userRepository.findById(userId).orElse(null);
-        var userResp = (user == null) ? null : new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getNickname());
+        var userResp = (user == null) ? null : new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getFirstName(), user.getLastName());
         return ResponseEntity.ok(new AuthDtos.AuthResponse(tokens.accessToken(), tokens.refreshToken(), userResp));
     }
 }

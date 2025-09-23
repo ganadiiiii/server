@@ -27,6 +27,6 @@ public class UserController {
     public ResponseEntity<AuthDtos.UserResponse> me() {
         UUID userId = SecurityUtils.currentUserIdOrThrow();
         User user = userRepository.findById(userId).orElseThrow();
-        return ResponseEntity.ok(new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getNickname()));
+        return ResponseEntity.ok(new AuthDtos.UserResponse(user.getUserId(), user.getEmail(), user.getFirstName(), user.getLastName()));
     }
 }

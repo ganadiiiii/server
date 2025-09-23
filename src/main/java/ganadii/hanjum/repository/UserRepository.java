@@ -18,9 +18,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmail(String email);
     Optional<User> findByUserId(UUID userId);
 
-    @Query("select u from User u where u.userId <> :userId and (lower(u.email) like lower(concat('%', :q, '%')) or lower(u.nickname) like lower(concat('%', :q, '%'))) order by u.nickname asc")
+    @Query("select u from User u where u.userId <> :userId and (lower(u.email) like lower(concat('%', :q, '%')) or lower(concat(u.firstName, ' ', u.lastName)) like lower(concat('%', :q, '%'))) order by u.lastName asc, u.firstName asc")
     Page<User> searchAll(@Param("userId") UUID userId, @Param("q") String q, Pageable pageable);
 
-    @Query("select u from User u where u.userId <> :userId and (lower(u.email) like lower(concat('%', :q, '%')) or lower(u.nickname) like lower(concat('%', :q, '%'))) order by case when u.userId in :friendIds then 0 else 1 end, u.nickname asc")
+    @Query("select u from User u where u.userId <> :userId and (lower(u.email) like lower(concat('%', :q, '%')) or lower(concat(u.firstName, ' ', u.lastName)) like lower(concat('%', :q, '%'))) order by case when u.userId in :friendIds then 0 else 1 end, u.lastName asc, u.firstName asc")
     Page<User> searchAllOrderFriendFirst(@Param("userId") UUID userId, @Param("q") String q, @Param("friendIds") java.util.List<UUID> friendIds, Pageable pageable);
 }

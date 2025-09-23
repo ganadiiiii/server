@@ -63,8 +63,8 @@ public class FriendRequestController {
     private FriendRequestDtos.FriendRequestResponse toResponse(FriendRequest r) {
         return new FriendRequestDtos.FriendRequestResponse(
                 r.getRequestId(),
-                new FriendRequestDtos.UserSummary(r.getSender().getUserId(), r.getSender().getEmail(), r.getSender().getNickname()),
-                new FriendRequestDtos.UserSummary(r.getReceiver().getUserId(), r.getReceiver().getEmail(), r.getReceiver().getNickname()),
+                new FriendRequestDtos.UserSummary(r.getSender().getUserId(), r.getSender().getEmail(), r.getSender().getFirstName(), r.getSender().getLastName()),
+                new FriendRequestDtos.UserSummary(r.getReceiver().getUserId(), r.getReceiver().getEmail(), r.getReceiver().getFirstName(), r.getReceiver().getLastName()),
                 r.getStatus(),
                 r.getCreatedAt(),
                 r.getRespondedAt()

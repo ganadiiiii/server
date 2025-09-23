@@ -21,7 +21,7 @@ public class ShareService {
     private final FlowerCardsRepository flowerCardsRepository;
 
     @Transactional
-    public Shares sendToSelf(UUID senderId, Long cardId) {
+    public Shares sendToSelf(UUID senderId, Long cardId, String idempotencyKey) {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
         FlowerCards card = flowerCardsRepository.findById(cardId)
@@ -36,9 +36,10 @@ public class ShareService {
                 .flowerCards(card)
                 .sender(sender)
                 .receiver(sender)
-                .toName(resolveName(null, sender.getNickname()))
-                .fromName(resolveName(null, sender.getNickname()))
+                .toName(resolveName(null, sender.getDisplayName()))
+                .fromName(resolveName(null, sender.getDisplayName()))
                 .isRead(true)
+                .idempotencyKey(trimToNull(idempotencyKey))
                 .build();
 
         return sharesRepository.save(share);
@@ -46,7 +47,7 @@ public class ShareService {
 
     @Transactional
     public Shares sendToFriend(UUID senderId, Long cardId, UUID receiverId,
-                               String toName, String fromName, String note) {
+                               String toName, String fromName, String note, String idempotencyKey) {
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
         User receiver = userRepository.findById(receiverId)
@@ -59,8 +60,8 @@ public class ShareService {
             throw new IllegalStateException("Card already sent");
         });
 
-        String finalTo = resolveName(toName, receiver.getNickname());
-        String finalFrom = resolveName(fromName, sender.getNickname());
+        String finalTo = resolveName(toName, receiver.getDisplayName());
+        String finalFrom = resolveName(fromName, sender.getDisplayName());
         String finalNote = trimToNull(note);
         if (finalNote != null && finalNote.length() > 200) {
             throw new IllegalArgumentException("note must be <= 200 characters");
@@ -74,14 +75,15 @@ public class ShareService {
                 .fromName(finalFrom)
                 .note(finalNote)
                 .isRead(false)
+                .idempotencyKey(trimToNull(idempotencyKey))
                 .build();
 
         return sharesRepository.save(share);
     }
 
-    private static String resolveName(String candidate, String fallbackNickname) {
+    private static String resolveName(String candidate, String fallbackName) {
         String v = trimToNull(candidate);
-        String result = (v == null) ? safeName(fallbackNickname) : v;
+        String result = (v == null) ? safeName(fallbackName) : v;
         validateName(result);
         return result;
     }
@@ -92,8 +94,8 @@ public class ShareService {
         return t.isEmpty() ? null : t;
     }
 
-    private static String safeName(String nickname) {
-        String v = nickname == null ? "" : nickname.trim();
+    private static String safeName(String raw) {
+        String v = raw == null ? "" : raw.trim();
         if (v.isEmpty()) v = "-";
         return v.length() > 20 ? v.substring(0, 20) : v;
     }

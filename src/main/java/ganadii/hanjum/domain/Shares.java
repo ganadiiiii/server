@@ -44,8 +44,10 @@ public class Shares {
     @Column(name = "is_read")
     private Boolean isRead;
 
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
     @CreationTimestamp
     @Column(name = "shared_at")
     private Instant sharedAt;
 }
-

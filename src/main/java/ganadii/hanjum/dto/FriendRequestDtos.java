@@ -19,8 +19,7 @@ public class FriendRequestDtos {
             Instant respondedAt
     ) {}
 
-    public record UserSummary(UUID userId, String email, String nickname) {}
+    public record UserSummary(UUID userId, String email, String firstName, String lastName) {}
 
     public record ListResponse(List<FriendRequestResponse> items) {}
 }
-

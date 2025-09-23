@@ -43,15 +43,19 @@ public class ShareController {
                                                               @RequestHeader(name = "X-User-Id", required = false) String userHeader,
                                                               @RequestHeader(name = "Idempotency-Key", required = false) String idemKey) {
         UUID userId = resolveUserId(userHeader);
-        // Idempotency: if already shared, return existing
-        if (idemKey != null && !idemKey.isBlank()) {
-            var existing = sharesRepository.findFirstByFlowerCards_CardId(cardId);
-            if (existing.isPresent()) {
-                return ResponseEntity.ok(toResponse(existing.get()));
-            }
+        String key = trimToNull(idemKey);
+        if (key != null) {
+            return sharesRepository.findByIdempotencyKeyAndSender_UserId(key, userId)
+                    .filter(share -> share.getFlowerCards().getCardId().equals(cardId)
+                            && share.getReceiver().getUserId().equals(userId))
+                    .map(existing -> ResponseEntity.ok(toResponse(existing)))
+                    .orElseGet(() -> {
+                        Shares created = shareService.sendToSelf(userId, cardId, key);
+                        return ResponseEntity.ok(toResponse(created));
+                    });
         }
-        Shares s = shareService.sendToSelf(userId, cardId);
-        return ResponseEntity.ok(toResponse(s));
+        Shares created = shareService.sendToSelf(userId, cardId, null);
+        return ResponseEntity.ok(toResponse(created));
     }
 
     @PostMapping("/cards/{cardId}/send")
@@ -61,14 +65,22 @@ public class ShareController {
                                                                 @RequestHeader(name = "X-User-Id", required = false) String userHeader,
                                                                 @RequestHeader(name = "Idempotency-Key", required = false) String idemKey) {
         UUID senderId = resolveUserId(userHeader);
-        if (idemKey != null && !idemKey.isBlank()) {
-            var existing = sharesRepository.findFirstByFlowerCards_CardId(cardId);
-            if (existing.isPresent()) {
-                return ResponseEntity.ok(toResponse(existing.get()));
-            }
+        UUID receiverId = req.receiverId();
+        String key = trimToNull(idemKey);
+        if (key != null) {
+            return sharesRepository.findByIdempotencyKeyAndSender_UserId(key, senderId)
+                    .filter(share -> share.getFlowerCards().getCardId().equals(cardId)
+                            && share.getReceiver().getUserId().equals(receiverId))
+                    .map(existing -> ResponseEntity.ok(toResponse(existing)))
+                    .orElseGet(() -> {
+                        Shares created = shareService.sendToFriend(senderId, cardId, receiverId,
+                                req.toName(), req.fromName(), req.note(), key);
+                        return ResponseEntity.ok(toResponse(created));
+                    });
         }
-        Shares s = shareService.sendToFriend(senderId, cardId, req.receiverId(), req.toName(), req.fromName(), req.note());
-        return ResponseEntity.ok(toResponse(s));
+        Shares created = shareService.sendToFriend(senderId, cardId, receiverId,
+                req.toName(), req.fromName(), req.note(), null);
+        return ResponseEntity.ok(toResponse(created));
     }
 
     @GetMapping("/archive")
@@ -110,8 +122,8 @@ public class ShareController {
                 s.getNote(),
                 s.getIsRead(),
                 s.getSharedAt(),
-                new ShareDtos.SimpleUser(s.getSender().getUserId(), s.getSender().getNickname()),
-                new ShareDtos.SimpleUser(s.getReceiver().getUserId(), s.getReceiver().getNickname()),
+                new ShareDtos.SimpleUser(s.getSender().getUserId(), s.getSender().getFirstName(), s.getSender().getLastName()),
+                new ShareDtos.SimpleUser(s.getReceiver().getUserId(), s.getReceiver().getFirstName(), s.getReceiver().getLastName()),
                 new ShareDtos.SimpleCard(
                         s.getFlowerCards().getCardId(),
                         s.getFlowerCards().getTitle(),
@@ -126,5 +138,13 @@ public class ShareController {
                         s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel()
                 )
         );
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }
