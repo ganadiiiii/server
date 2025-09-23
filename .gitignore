@@ -182,6 +182,7 @@ src/main/resources/application-dev.yaml
 
 # Agents
 AGENTS.md
+GEMINI.md
 
 # SQL
 *.sql
@@ -192,3 +193,6 @@ card-image-caching.md
 
 # Test
 /src/test/java/
+
+# ERD
+/hanjum/hanjum.vuerd.json
