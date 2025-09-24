@@ -71,12 +71,14 @@ public class SecurityConfig {
 
         /*
         // 허용할 origin
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:5332"
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",   // 모든 localhost 포트 허용
+                "http://*.hanjum.site"  // 모든 서브도메인 허용
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         */
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
