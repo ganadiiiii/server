@@ -6,7 +6,7 @@ import ganadii.hanjum.dto.ShareDtos;
 import ganadii.hanjum.repository.FriendRequestRepository;
 import ganadii.hanjum.repository.SharesRepository;
 import ganadii.hanjum.service.ShareService;
-import ganadii.hanjum.web.SecurityUtils;
+import ganadii.hanjum.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

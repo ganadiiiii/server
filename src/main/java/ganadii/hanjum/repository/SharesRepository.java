@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -22,6 +22,7 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     List<Shares> findUnreadByReceiver(@Param("receiverId") UUID receiverId);
     Page<Shares> findByReceiver_UserId(UUID receiverId, Pageable pageable);
     Optional<Shares> findFirstByFlowerCards_CardId(Long cardId);
+    Optional<Shares> findByIdempotencyKeyAndSender_UserId(String idempotencyKey, UUID senderId);
     Optional<Shares> findBySender_UserIdAndReceiver_UserIdAndFlowerCards_CardId(UUID senderId, UUID receiverId, Long cardId);
     boolean existsByFlowerCards_CardId(Long cardId);
 }

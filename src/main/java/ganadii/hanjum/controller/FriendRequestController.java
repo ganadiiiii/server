@@ -3,7 +3,7 @@ package ganadii.hanjum.controller;
 import ganadii.hanjum.domain.FriendRequest;
 import ganadii.hanjum.dto.FriendRequestDtos;
 import ganadii.hanjum.service.FriendRequestService;
-import ganadii.hanjum.web.SecurityUtils;
+import ganadii.hanjum.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

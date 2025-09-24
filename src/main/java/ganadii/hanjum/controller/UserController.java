@@ -3,7 +3,7 @@ package ganadii.hanjum.controller;
 import ganadii.hanjum.domain.User;
 import ganadii.hanjum.dto.AuthDtos;
 import ganadii.hanjum.repository.UserRepository;
-import ganadii.hanjum.web.SecurityUtils;
+import ganadii.hanjum.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

@@ -2,7 +2,7 @@ package ganadii.hanjum.controller;
 
 import ganadii.hanjum.dto.FlowerCardDtos;
 import ganadii.hanjum.service.FlowerCardService;
-import ganadii.hanjum.web.SecurityUtils;
+import ganadii.hanjum.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
