@@ -4,9 +4,11 @@ import ganadii.hanjum.domain.User;
 import ganadii.hanjum.repository.UserRepository;
 import ganadii.hanjum.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -21,7 +23,7 @@ public class AuthService {
     @Transactional
     public User signup(String email, String rawPassword, String firstName, String lastName) {
         userRepository.findByEmail(email).ifPresent(u -> {
-            throw new IllegalArgumentException("Email already in use");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         });
         User user = User.builder()
                 .email(email)
