@@ -36,11 +36,11 @@ public class FriendsController {
 
     @GetMapping("/users/search")
     @Operation(summary = "사용자 검색", description = "친구 추가를 위해 사용자를 검색합니다.")
-    public ResponseEntity<FriendDtos.SearchResponse> search(@RequestParam String q,
+    public ResponseEntity<FriendDtos.SearchResponse> search(@RequestParam String query,
                                                             @RequestParam(defaultValue = "0") int page,
                                                             @RequestParam(defaultValue = "20") int size) {
         UUID userId = SecurityUtils.currentUserIdOrThrow();
-        Page<User> p = friendsService.searchUsers(userId, q, page, size);
+        Page<User> p = friendsService.searchUsers(userId, query, page, size);
         var friendIds = friendsService.friendIds(userId);
         List<FriendDtos.SearchItem> items = p.getContent().stream().map(u -> new FriendDtos.SearchItem(
                 u.getUserId(), u.getEmail(), u.getFirstName(), u.getLastName(), friendIds.contains(u.getUserId()), friendsService.friendCount(u.getUserId())
