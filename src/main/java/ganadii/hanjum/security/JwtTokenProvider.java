@@ -23,7 +23,7 @@ public class JwtTokenProvider {
 
     public JwtTokenProvider(
             @Value("${spring.jwt.secret}") String secret,
-            @Value("${app.jwt.access-ttl-seconds:3600*24*30}") long accessTtlSeconds,
+            @Value("${app.jwt.access-ttl-seconds:2592000}") long accessTtlSeconds, // 3600*24*30 == 1달
             @Value("${app.jwt.refresh-ttl-seconds:1209600}") long refreshTtlSeconds
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
