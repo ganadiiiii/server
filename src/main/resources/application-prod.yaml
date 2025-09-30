@@ -12,6 +12,12 @@ spring:
   jwt:
     secret: ${JWT_SECRET}
 
+  logging:
+    file:
+      name: /home/ec2-user/hanjum/app.log
+    level:
+      root: INFO
+
   flyway:
     enabled: false
     baseline-on-migrate: true
