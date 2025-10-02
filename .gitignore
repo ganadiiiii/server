@@ -183,6 +183,7 @@ src/main/resources/application-dev.yaml
 # Agents
 AGENTS.md
 GEMINI.md
+CLAUDE.md
 
 # SQL
 *.sql
