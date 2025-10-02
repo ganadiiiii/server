@@ -26,30 +26,33 @@ public class CardDesignAssetService {
     @Transactional
     public CardDesignAsset resolveAsset(CardDesignRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        Long flowerId = Optional.ofNullable(request.mainFlower())
-                .map(card -> card.getFlowerId())
-                .orElseThrow(() -> new IllegalArgumentException("Main flower must be provided"));
-        return cardDesignAssetRepository.findByMainFlower_FlowerIdAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
-                flowerId,
+        if (request.mainFlowers() == null || request.mainFlowers().isEmpty()) {
+            throw new IllegalArgumentException("Main flowers must be provided");
+        }
+
+        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+
+        return cardDesignAssetRepository.findByFlowerCombinationHashAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
+                flowerHash,
                 request.whoType(),
                 request.whenType(),
                 request.emotionType(),
                 request.bouquetSize()
-        ).orElseGet(() -> fetchAndCache(request));
+        ).orElseGet(() -> fetchAndCache(request, flowerHash));
     }
 
-    private CardDesignAsset fetchAndCache(CardDesignRequest request) {
+    private CardDesignAsset fetchAndCache(CardDesignRequest request, String flowerHash) {
         for (CardAssetPresetLocator locator : safeLocators()) {
             Optional<CardAssetDescriptor> preset = locator.findPreset(request);
             if (preset.isPresent()) {
-                return persist(request, preset.get());
+                return persist(request, flowerHash, preset.get());
             }
         }
         CardAssetDescriptor generated = cardAssetGenerator.generate(request);
-        return persist(request, generated);
+        return persist(request, flowerHash, generated);
     }
 
-    private CardDesignAsset persist(CardDesignRequest request, CardAssetDescriptor descriptor) {
+    private CardDesignAsset persist(CardDesignRequest request, String flowerHash, CardAssetDescriptor descriptor) {
         Objects.requireNonNull(descriptor, "descriptor must not be null");
         if (descriptor.imageUrl() == null || descriptor.imageUrl().isBlank()) {
             throw new IllegalArgumentException("Asset descriptor must supply a non-empty imageUrl");
@@ -59,7 +62,7 @@ public class CardDesignAssetService {
         }
 
         CardDesignAsset asset = CardDesignAsset.builder()
-                .mainFlower(request.mainFlower())
+                .flowerCombinationHash(flowerHash)
                 .whoType(request.whoType())
                 .whenType(request.whenType())
                 .emotionType(request.emotionType())
@@ -72,9 +75,8 @@ public class CardDesignAssetService {
         try {
             return cardDesignAssetRepository.save(asset);
         } catch (DataIntegrityViolationException e) {
-            Long flowerId = request.mainFlower() == null ? null : request.mainFlower().getFlowerId();
-            return cardDesignAssetRepository.findByMainFlower_FlowerIdAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
-                    flowerId,
+            return cardDesignAssetRepository.findByFlowerCombinationHashAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
+                    flowerHash,
                     request.whoType(),
                     request.whenType(),
                     request.emotionType(),

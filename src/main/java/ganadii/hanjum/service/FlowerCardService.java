@@ -81,7 +81,6 @@ public class FlowerCardService {
         List<Flowers> orderedMainFlowers = distinctIds.stream()
                 .map(flowersById::get)
                 .collect(Collectors.toCollection(ArrayList::new));
-        Flowers primaryFlower = orderedMainFlowers.get(0);
 
         if (request.price() != null && request.price() < 0) {
             throw new IllegalArgumentException("price must be >= 0");
@@ -94,7 +93,7 @@ public class FlowerCardService {
         List<String> backgroundColors = normalizeColors(request.backgroundColors());
 
         CardDesignAsset designAsset = cardDesignAssetService.resolveAsset(
-                new CardDesignRequest(primaryFlower, whoType, whenType, emotionType, bouquetSize)
+                new CardDesignRequest(orderedMainFlowers, whoType, whenType, emotionType, bouquetSize)
         );
 
         FlowerCards card = FlowerCards.builder()

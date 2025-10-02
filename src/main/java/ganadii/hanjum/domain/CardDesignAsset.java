@@ -24,7 +24,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "card_design_assets",
         uniqueConstraints = @UniqueConstraint(name = "uk_card_design_assets_combo",
-                columnNames = {"main_flower_id", "who_type", "when_type", "emotion_type", "bouquet_size"}))
+                columnNames = {"flower_combination_hash", "who_type", "when_type", "emotion_type", "bouquet_size"}))
 public class CardDesignAsset {
 
     @Id
@@ -32,9 +32,8 @@ public class CardDesignAsset {
     @Column(name = "asset_id", updatable = false, nullable = false)
     private Long assetId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "main_flower_id", nullable = false)
-    private Flowers mainFlower;
+    @Column(name = "flower_combination_hash", nullable = false, length = 64)
+    private String flowerCombinationHash;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "who_type", nullable = false)
