@@ -45,6 +45,10 @@ jobs:
             export DB_USERNAME=${{ secrets.DB_USERNAME }}
             export DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             export JWT_SECRET=${{ secrets.JWT_SECRET }}
+            export GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            export GEMINI_API_URL=${{ secrets.GEMINI_API_URL }}
+            export S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+            export AWS_REGION=${{ secrets.AWS_REGION }}
 
             bash /home/ec2-user/hanjum/deploy.sh
 
