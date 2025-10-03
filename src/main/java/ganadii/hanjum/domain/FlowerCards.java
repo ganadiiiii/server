@@ -71,10 +71,6 @@ public class FlowerCards {
     @Column(name = "price")
     private Integer price;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "background_colors", columnDefinition = "json")
-    private List<String> backgroundColors;
-
     @Builder.Default
     @Column(name = "is_ordered", nullable = false)
     private boolean isOrdered = false;

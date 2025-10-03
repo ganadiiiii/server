@@ -90,7 +90,6 @@ public class FlowerCardService {
         WhenType whenType = resolveEnum(request.whenType(), WhenType.class, WhenType::fromLabel, "whenType");
         EmotionType emotionType = resolveEnum(request.emotionType(), EmotionType.class, EmotionType::fromLabel, "emotionType");
         BouquetSize bouquetSize = resolveBouquetSize(request.bouquetSize());
-        List<String> backgroundColors = normalizeColors(request.backgroundColors());
 
         CardDesignAsset designAsset = cardDesignAssetService.resolveAsset(
                 new CardDesignRequest(orderedMainFlowers, whoType, whenType, emotionType, bouquetSize)
@@ -108,7 +107,6 @@ public class FlowerCardService {
                 .emotionType(emotionType)
                 .bouquetSize(bouquetSize)
                 .price(request.price())
-                .backgroundColors(backgroundColors)
                 .build();
 
         FlowerCards saved = flowerCardsRepository.save(card);
@@ -164,7 +162,6 @@ public class FlowerCardService {
     }
 
     private static FlowerCardDtos.CardResponse toResponse(FlowerCards card, List<Flowers> mainFlowers, CardDesignAsset asset) {
-        List<String> colors = card.getBackgroundColors() == null ? null : List.copyOf(card.getBackgroundColors());
         WhoType whoType = card.getWhoType();
         WhenType whenType = card.getWhenType();
         EmotionType emotionType = card.getEmotionType();
@@ -196,7 +193,6 @@ public class FlowerCardService {
                 bouquetSize == null ? null : bouquetSize.name(),
                 bouquetSize == null ? null : bouquetSize.getLabel(),
                 card.getPrice(),
-                colors,
                 asset == null ? null : asset.getAssetId(),
                 flowerSummaries
         );
@@ -208,17 +204,6 @@ public class FlowerCardService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
-    }
-
-    private static List<String> normalizeColors(List<String> colors) {
-        if (colors == null || colors.isEmpty()) {
-            return null;
-        }
-        return colors.stream()
-                .map(FlowerCardService::trimToNull)
-                .filter(s -> s != null)
-                .distinct()
-                .toList();
     }
 
     private static BouquetSize resolveBouquetSize(String raw) {
