@@ -6,6 +6,7 @@ import ganadii.hanjum.service.S3Service;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
 import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
 import ganadii.hanjum.service.carddesign.dto.GeminiApiResponse;
+import ganadii.hanjum.util.CryptoUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,7 +56,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String imageUrl = s3Service.upload(s3Key, imageBytes, "image/png");
 
             // 4. 체크섬 계산
-            String checksum = sha256(imageBytes);
+            String checksum = CryptoUtils.sha256(imageBytes);
 
             log.info("Card image generated successfully: s3Key={}, url={}", s3Key, imageUrl);
 
@@ -252,15 +253,6 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         return value == null ? "any" : value.toString().toLowerCase();
     }
 
-    private String sha256(byte[] data) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(data);
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
-    }
 
     /**
      * 더미 PNG 이미지 생성 (1x1 투명 픽셀)

@@ -3,12 +3,8 @@ package ganadii.hanjum.service.carddesign;
 import ganadii.hanjum.domain.enums.CardImageSource;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
 import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
+import ganadii.hanjum.util.CryptoUtils;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 @Component
 public class StubCardAssetGenerator implements CardAssetGenerator {
@@ -18,7 +14,7 @@ public class StubCardAssetGenerator implements CardAssetGenerator {
     @Override
     public CardAssetDescriptor generate(CardDesignRequest request) {
         String key = buildKey(request);
-        String checksum = sha1(key);
+        String checksum = CryptoUtils.sha1(key);
         String imageUrl = FALLBACK_BASE_URL + "/" + key + ".png";
         String storageKey = "cards/generated/" + key + ".png";
         return new CardAssetDescriptor(imageUrl, storageKey, CardImageSource.GENERATED, checksum);
@@ -34,13 +30,4 @@ public class StubCardAssetGenerator implements CardAssetGenerator {
         return flowerHash + "-" + who + "-" + when + "-" + emotion + "-" + size;
     }
 
-    private static String sha1(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
-            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-1 algorithm not available", e);
-        }
-    }
 }

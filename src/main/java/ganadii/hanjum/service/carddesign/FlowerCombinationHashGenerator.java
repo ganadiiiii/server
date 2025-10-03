@@ -1,11 +1,8 @@
 package ganadii.hanjum.service.carddesign;
 
 import ganadii.hanjum.domain.Flowers;
+import ganadii.hanjum.util.CryptoUtils;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -13,6 +10,10 @@ import java.util.stream.Collectors;
  * 꽃 조합에 대한 해시 생성 유틸리티
  */
 public class FlowerCombinationHashGenerator {
+
+    private FlowerCombinationHashGenerator() {
+        throw new IllegalStateException("Utility class");
+    }
 
     /**
      * 꽃 리스트를 해시로 변환
@@ -35,16 +36,6 @@ public class FlowerCombinationHashGenerator {
                 .map(String::valueOf)
                 .collect(Collectors.joining(","));
 
-        return sha256(flowerIds).substring(0, 16);
-    }
-
-    private static String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm not available", e);
-        }
+        return CryptoUtils.sha256(flowerIds).substring(0, 16);
     }
 }
