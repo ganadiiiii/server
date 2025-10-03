@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private final S3Service s3Service;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${app.gemini.api-url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent}")
     private String geminiApiUrl;
