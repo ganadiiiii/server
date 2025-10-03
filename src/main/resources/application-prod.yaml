@@ -21,3 +21,12 @@ spring:
   flyway:
     enabled: false
     baseline-on-migrate: true
+
+app:
+  s3:
+    bucket-name: ${S3_BUCKET_NAME}
+    region: ${AWS_REGION:ap-northeast-2}
+    base-url: ${S3_BASE_URL:}
+  gemini:
+    api-url: ${GEMINI_API_URL:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent}
+    api-key: ${GEMINI_API_KEY}

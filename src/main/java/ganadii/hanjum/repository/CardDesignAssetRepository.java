@@ -12,8 +12,8 @@ import java.util.Optional;
 
 @Repository
 public interface CardDesignAssetRepository extends JpaRepository<CardDesignAsset, Long> {
-    Optional<CardDesignAsset> findByMainFlower_FlowerIdAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
-            Long mainFlowerId,
+    Optional<CardDesignAsset> findByFlowerCombinationHashAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
+            String flowerCombinationHash,
             WhoType whoType,
             WhenType whenType,
             EmotionType emotionType,
