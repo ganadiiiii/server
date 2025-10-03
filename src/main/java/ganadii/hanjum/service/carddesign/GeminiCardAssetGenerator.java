@@ -5,6 +5,7 @@ import ganadii.hanjum.domain.enums.CardImageSource;
 import ganadii.hanjum.service.S3Service;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
 import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
+import ganadii.hanjum.service.carddesign.dto.GeminiApiResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,69 +102,35 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
             // 4. API 호출
             log.info("Calling Gemini API: {}", geminiApiUrl);
-            ResponseEntity<Map> response = restTemplate.postForEntity(
+            ResponseEntity<GeminiApiResponse.Response> response = restTemplate.postForEntity(
                 geminiApiUrl,
                 entity,
-                Map.class
+                GeminiApiResponse.Response.class
             );
 
             // 5. Response 파싱
-            Map<String, Object> body = response.getBody();
-            if (body == null) {
-                throw new RuntimeException("Empty response from Gemini API");
+            GeminiApiResponse.Response body = response.getBody();
+            if (body == null || body.candidates() == null || body.candidates().isEmpty()) {
+                throw new RuntimeException("Empty or invalid response from Gemini API");
             }
 
-            // 응답 구조 로깅
-            log.info("Gemini API Response: {}", body);
+            log.info("Gemini API response received with {} candidates", body.candidates().size());
 
-            // candidates[0].content.parts[0].inlineData.data (Base64)
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
-            if (candidates == null || candidates.isEmpty()) {
-                throw new RuntimeException("No candidates in Gemini response");
-            }
-
-            Map<String, Object> content = (Map<String, Object>) candidates.get(0).get("content");
-            if (content == null) {
+            // Extract image data from first candidate
+            GeminiApiResponse.Candidate candidate = body.candidates().get(0);
+            if (candidate.content() == null || candidate.content().parts() == null) {
                 throw new RuntimeException("No content in Gemini response");
             }
 
-            List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-            if (parts == null || parts.isEmpty()) {
-                throw new RuntimeException("No parts in Gemini response");
-            }
-
-            // 이미지가 포함된 part 찾기
-            Map<String, Object> imagePart = null;
-            for (Map<String, Object> part : parts) {
-                // inline_data 또는 inlineData 둘 다 체크
-                if (part.containsKey("inline_data") || part.containsKey("inlineData")) {
-                    imagePart = part;
-                    break;
-                }
-            }
-
-            if (imagePart == null) {
-                log.error("No image part found. Parts: {}", parts);
-                throw new RuntimeException("No image data in Gemini response. Available parts: " + parts);
-            }
-
-            // inline_data 또는 inlineData 가져오기
-            Map<String, Object> inlineData = (Map<String, Object>) imagePart.get("inline_data");
-            if (inlineData == null) {
-                inlineData = (Map<String, Object>) imagePart.get("inlineData");
-            }
-
-            if (inlineData == null) {
-                throw new RuntimeException("No inline_data in image part. Available keys: " + imagePart.keySet());
-            }
-
-            String base64Image = (String) inlineData.get("data");
-            if (base64Image == null || base64Image.isEmpty()) {
-                throw new RuntimeException("No image data in inline_data");
-            }
+            // Find part with inline image data
+            GeminiApiResponse.InlineData inlineData = candidate.content().parts().stream()
+                    .map(GeminiApiResponse.Part::getInlineData)
+                    .filter(data -> data != null && data.data() != null && !data.data().isEmpty())
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No image data in Gemini response"));
 
             // 6. Base64 디코딩
-            return Base64.getDecoder().decode(base64Image);
+            return Base64.getDecoder().decode(inlineData.data());
 
         } catch (Exception e) {
             log.error("Gemini API call failed", e);
