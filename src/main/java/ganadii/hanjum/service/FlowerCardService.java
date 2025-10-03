@@ -63,7 +63,6 @@ public class FlowerCardService {
 
         List<Long> normalizedIds = requestedIds.stream()
                 .map(id -> Objects.requireNonNull(id, "mainFlowerIds must not contain null"))
-                .map(Long::valueOf)
                 .collect(Collectors.toCollection(ArrayList::new));
 
         LinkedHashSet<Long> distinctIds = new LinkedHashSet<>(normalizedIds);
