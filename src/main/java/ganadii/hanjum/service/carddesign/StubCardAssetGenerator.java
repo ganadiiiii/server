@@ -6,6 +6,8 @@ import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
 import ganadii.hanjum.util.CryptoUtils;
 import org.springframework.stereotype.Component;
 
+import java.util.stream.Collectors;
+
 @Component
 public class StubCardAssetGenerator implements CardAssetGenerator {
 
@@ -21,13 +23,17 @@ public class StubCardAssetGenerator implements CardAssetGenerator {
     }
 
     private static String buildKey(CardDesignRequest request) {
-        // 해시 기반 꽃 조합 키 (예: a3f2b8c4d5e6f7a8)
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+        Long flowerId = request.mainFlower().getFlowerId();
         String who = request.whoType() == null ? "any" : request.whoType().name().toLowerCase();
         String when = request.whenType() == null ? "any" : request.whenType().name().toLowerCase();
-        String emotion = request.emotionType() == null ? "any" : request.emotionType().name().toLowerCase();
+
+        // Use first emotion for key
+        String emotion = (request.emotionTypes() == null || request.emotionTypes().isEmpty())
+                ? "any"
+                : request.emotionTypes().get(0).name().toLowerCase();
+
         String size = request.bouquetSize() == null ? "any" : request.bouquetSize().name().toLowerCase();
-        return flowerHash + "-" + who + "-" + when + "-" + emotion + "-" + size;
+        return flowerId + "-" + who + "-" + when + "-" + emotion + "-" + size;
     }
 
 }
