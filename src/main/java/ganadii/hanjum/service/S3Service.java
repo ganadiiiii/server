@@ -75,6 +75,35 @@ public class S3Service {
     }
 
     /**
+     * S3에서 파일 다운로드
+     *
+     * @param key S3 객체 키
+     * @return 파일 바이트 배열
+     */
+    public byte[] download(String key) {
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(s3Properties.getBucketName())
+                    .key(key)
+                    .build();
+
+            byte[] bytes = s3Client.getObject(getObjectRequest).readAllBytes();
+            log.info("Downloaded from S3: bucket={}, key={}, size={}",
+                    s3Properties.getBucketName(), key, bytes.length);
+            return bytes;
+        } catch (NoSuchKeyException e) {
+            log.warn("S3 file not found: key={}", key);
+            return null;
+        } catch (S3Exception e) {
+            log.error("S3 download failed: key={}, error={}", key, e.awsErrorDetails().errorMessage(), e);
+            throw new RuntimeException("Failed to download file from S3", e);
+        } catch (Exception e) {
+            log.error("Failed to read S3 object: key={}", key, e);
+            throw new RuntimeException("Failed to read S3 object", e);
+        }
+    }
+
+    /**
      * S3에서 파일 삭제
      *
      * @param key S3 객체 키
