@@ -6,6 +6,7 @@ import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.domain.enums.EmotionType;
 // store enum names in DB for stability and i18n-friendly labels at UI
 import ganadii.hanjum.domain.enums.BouquetSize;
+import ganadii.hanjum.domain.enums.WrappingType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -56,17 +57,21 @@ public class FlowerCards {
     @Column(name = "who_type")
     private WhoType whoType;
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "when_types", columnDefinition = "jsonb")
-    private List<WhenType> whenTypes;
-
     @Enumerated(EnumType.STRING)
-    @Column(name = "emotion_type")
-    private EmotionType emotionType;
+    @Column(name = "when_type")
+    private WhenType whenType;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "emotion_types", columnDefinition = "jsonb")
+    private List<EmotionType> emotionTypes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "bouquet_size")
     private BouquetSize bouquetSize;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "wrapping_type")
+    private WrappingType wrappingType;
 
     @Column(name = "price")
     private Integer price;

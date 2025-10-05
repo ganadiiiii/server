@@ -13,9 +13,10 @@ public class FlowerCardDtos {
             @Size(max = 100) String title,
             @Size(max = 500) String floriography,
             @NotBlank String whoType,
-            @NotNull @Size(min = 1, max = 9) List<@NotBlank String> whenTypes,
-            @NotBlank String emotionType,
+            @NotBlank String whenType,
+            @NotNull @Size(min = 1, max = 5) List<@NotBlank String> emotionTypes,
             String bouquetSize,
+            String wrappingType,
             Integer price
     ) {}
 
@@ -27,12 +28,14 @@ public class FlowerCardDtos {
             String floriography,
             String whoType,
             String whoLabel,
-            List<String> whenTypes,
-            List<String> whenLabels,
-            String emotionType,
-            String emotionLabel,
+            String whenType,
+            String whenLabel,
+            List<String> emotionTypes,
+            List<String> emotionLabels,
             String bouquetSize,
             String bouquetLabel,
+            String wrappingType,
+            String wrappingLabel,
             Integer price,
             Long designAssetId,
             FlowerSummary mainFlower

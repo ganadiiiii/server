@@ -26,17 +26,21 @@ public class CardDesignAssetService {
     @Transactional
     public CardDesignAsset resolveAsset(CardDesignRequest request) {
         Objects.requireNonNull(request, "request must not be null");
-        if (request.mainFlowers() == null || request.mainFlowers().isEmpty()) {
-            throw new IllegalArgumentException("Main flowers must be provided");
+        if (request.mainFlower() == null) {
+            throw new IllegalArgumentException("Main flower must be provided");
+        }
+        if (request.emotionTypes() == null || request.emotionTypes().isEmpty()) {
+            throw new IllegalArgumentException("Emotion types must be provided");
         }
 
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlower());
 
+        // Use first emotion for cache key
         return cardDesignAssetRepository.findByFlowerCombinationHashAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
                 flowerHash,
                 request.whoType(),
                 request.whenType(),
-                request.emotionType(),
+                request.emotionTypes().get(0),
                 request.bouquetSize()
         ).orElseGet(() -> fetchAndCache(request, flowerHash));
     }
@@ -61,11 +65,12 @@ public class CardDesignAssetService {
             throw new IllegalArgumentException("Asset descriptor must declare an image source");
         }
 
+        // Use first emotion for cache key
         CardDesignAsset asset = CardDesignAsset.builder()
                 .flowerCombinationHash(flowerHash)
                 .whoType(request.whoType())
                 .whenType(request.whenType())
-                .emotionType(request.emotionType())
+                .emotionType(request.emotionTypes().get(0))
                 .bouquetSize(normalizeBouquetSize(request.bouquetSize()))
                 .source(descriptor.source())
                 .imageUrl(descriptor.imageUrl())
@@ -79,7 +84,7 @@ public class CardDesignAssetService {
                     flowerHash,
                     request.whoType(),
                     request.whenType(),
-                    request.emotionType(),
+                    request.emotionTypes().get(0),
                     normalizeBouquetSize(request.bouquetSize())
             ).orElseThrow(() -> e);
         }

@@ -24,10 +24,15 @@ public class S3CardAssetPresetLocator implements CardAssetPresetLocator {
     @Override
     public Optional<CardAssetDescriptor> findPreset(CardDesignRequest request) {
         // 1. S3 키 생성 (해시 기반)
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlower());
         String who = normalize(request.whoType());
         String when = normalize(request.whenType());
-        String emotion = normalize(request.emotionType());
+
+        // Use first emotion for key
+        String emotion = (request.emotionTypes() == null || request.emotionTypes().isEmpty())
+                ? "any"
+                : request.emotionTypes().get(0).name().toLowerCase();
+
         String size = normalize(request.bouquetSize());
 
         String s3Key = String.format("cards/preset/%s-%s-%s-%s-%s.png",
@@ -64,23 +69,25 @@ public class S3CardAssetPresetLocator implements CardAssetPresetLocator {
 
     /**
      * 대체 네이밍 전략: 꽃 영문명 기반
-     * 예: cards/preset/rose-tulip-friend-birthday-joy-medium.png
+     * 예: cards/preset/rose-friend-birthday-joy-medium.png
      */
     private String buildAlternativeKey(CardDesignRequest request) {
-        String flowerNames = request.mainFlowers().stream()
-                .map(f -> f.getEnglishName() != null ?
-                    f.getEnglishName().toLowerCase().replace(" ", "-") :
-                    String.valueOf(f.getFlowerId()))
-                .sorted()
-                .collect(Collectors.joining("-"));
+        String flowerName = request.mainFlower().getEnglishName() != null
+                ? request.mainFlower().getEnglishName().toLowerCase().replace(" ", "-")
+                : String.valueOf(request.mainFlower().getFlowerId());
 
         String who = normalize(request.whoType());
         String when = normalize(request.whenType());
-        String emotion = normalize(request.emotionType());
+
+        // Use first emotion for key
+        String emotion = (request.emotionTypes() == null || request.emotionTypes().isEmpty())
+                ? "any"
+                : request.emotionTypes().get(0).name().toLowerCase();
+
         String size = normalize(request.bouquetSize());
 
         return String.format("cards/preset/%s-%s-%s-%s-%s.png",
-                flowerNames, who, when, emotion, size);
+                flowerName, who, when, emotion, size);
     }
 
     private String normalize(Object value) {

@@ -2,6 +2,8 @@ package ganadii.hanjum.service.carddesign;
 
 import ganadii.hanjum.domain.Flowers;
 import ganadii.hanjum.domain.enums.CardImageSource;
+import ganadii.hanjum.domain.enums.EmotionType;
+import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.service.S3Service;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
 import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
@@ -34,6 +36,9 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private final S3Service s3Service;
     private final RestTemplate restTemplate;
+
+    // 참고 이미지 S3 키 (디자이너가 작업한 꽃다발 이미지)
+    private static final String REFERENCE_IMAGE_KEY = "cards/reference/designer-bouquet.png";
 
     @Value("${app.gemini.api-url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent}")
     private String geminiApiUrl;
@@ -69,6 +74,30 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
+     * S3에서 참고 이미지를 로드하여 Base64로 인코딩
+     */
+    private String loadReferenceImageAsBase64() {
+        try {
+            String referenceKey = REFERENCE_IMAGE_KEY;
+            if (!s3Service.exists(referenceKey)) {
+                log.warn("Reference image not found in S3: {}", referenceKey);
+                return null;
+            }
+            byte[] imageBytes = s3Service.download(referenceKey);
+            if (imageBytes == null || imageBytes.length == 0) {
+                log.warn("Reference image is empty: {}", referenceKey);
+                return null;
+            }
+            String base64 = Base64.getEncoder().encodeToString(imageBytes);
+            log.info("Reference image loaded successfully: key={}, size={}", referenceKey, imageBytes.length);
+            return base64;
+        } catch (Exception e) {
+            log.error("Failed to load reference image from S3", e);
+            return null;
+        }
+    }
+
+    /**
      * Gemini API 호출
      */
     private byte[] callGeminiApi(CardDesignRequest request) {
@@ -82,12 +111,29 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String prompt = buildPrompt(request);
             log.info("Generated prompt: {}", prompt);
 
-            // 2. Request Body 구성
+            // 2. 참고 이미지 로드
+            String referenceImageBase64 = loadReferenceImageAsBase64();
+
+            // 3. Request Body 구성 (참고 이미지 포함)
+            List<Map<String, Object>> parts = new java.util.ArrayList<>();
+
+            // 참고 이미지가 있으면 먼저 추가
+            if (referenceImageBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", referenceImageBase64
+                    )
+                ));
+                log.info("Reference image included in Gemini API request");
+            }
+
+            // 텍스트 프롬프트 추가
+            parts.add(Map.of("text", prompt));
+
             Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
-                    Map.of("parts", List.of(
-                        Map.of("text", prompt)
-                    ))
+                    Map.of("parts", parts)
                 ),
                 "generationConfig", Map.of(
                     "responseModalities", List.of("Image")
@@ -151,9 +197,10 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
         // 시나리오 정보
         String who = translateWhoType(request.whoType());
-        String when = translateWhenTypes(request.whenTypes());
-        String emotion = translateEmotionType(request.emotionType());
+        String when = translateWhenType(request.whenType());
+        String emotion = translateEmotionTypes(request.emotionTypes());
         String size = translateBouquetSize(request.bouquetSize());
+        String wrapping = translateWrappingType(request.wrappingType());
 
         // 프롬프트 생성
         return String.format(
@@ -163,6 +210,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             "- Occasion: %s\n" +
             "- Emotion/Mood: %s\n" +
             "- Size: %s\n" +
+            "- Wrapping: %s\n" +
             "\n" +
             "IMPORTANT: Follow the EXACT SAME STYLE, composition, and visual aesthetic as the reference image provided.\n" +
             "Match the reference image's:\n" +
@@ -178,6 +226,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             "- Centered composition\n" +
             "- Natural lighting\n" +
             "- Fresh and vibrant colors\n" +
+            "- Use %s wrapping paper as specified\n" +
             "\n" +
             "The bouquet should convey %s feelings and be perfect for giving to %s on %s.",
             flowerName,
@@ -185,6 +234,8 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             when,
             emotion,
             size,
+            wrapping,
+            wrapping.toLowerCase(),
             emotion.toLowerCase(),
             who.toLowerCase(),
             when.toLowerCase()
@@ -197,17 +248,13 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     private String buildS3Key(CardDesignRequest request) {
         Long flowerId = request.mainFlower().getFlowerId();
         String who = normalize(request.whoType());
+        String when = normalize(request.whenType());
 
-        // whenTypes를 정렬하여 일관된 키 생성
-        String when = (request.whenTypes() == null || request.whenTypes().isEmpty())
+        // Use first emotion for S3 key
+        String emotion = (request.emotionTypes() == null || request.emotionTypes().isEmpty())
                 ? "any"
-                : request.whenTypes().stream()
-                        .map(Enum::name)
-                        .sorted()
-                        .map(String::toLowerCase)
-                        .collect(Collectors.joining("-"));
+                : request.emotionTypes().get(0).name().toLowerCase();
 
-        String emotion = normalize(request.emotionType());
         String size = normalize(request.bouquetSize());
 
         return String.format("cards/generated/%d-%s-%s-%s-%s.png",
@@ -227,35 +274,36 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         };
     }
 
-    private String translateWhenTypes(List<WhenType> whenTypes) {
-        if (whenTypes == null || whenTypes.isEmpty()) {
+    private String translateWhenType(WhenType whenType) {
+        if (whenType == null) {
             return "a special occasion";
         }
-        List<String> translations = whenTypes.stream()
+        return switch (whenType.name()) {
+            case "BIRTHDAY" -> "a birthday";
+            case "WEDDING" -> "a wedding";
+            case "GRADUATION" -> "a graduation";
+            case "ANNIVERSARY" -> "an anniversary";
+            case "CONGRATULATION" -> "a congratulation";
+            default -> "a special occasion";
+        };
+    }
+
+    private String translateEmotionTypes(List<EmotionType> emotionTypes) {
+        if (emotionTypes == null || emotionTypes.isEmpty()) {
+            return "warm and heartfelt";
+        }
+        List<String> translations = emotionTypes.stream()
                 .map(type -> switch (type.name()) {
-                    case "BIRTHDAY" -> "a birthday";
-                    case "WEDDING" -> "a wedding";
-                    case "GRADUATION" -> "a graduation";
-                    case "ANNIVERSARY" -> "an anniversary";
-                    case "CONGRATULATION" -> "a congratulation";
-                    default -> "a special occasion";
+                    case "JOY" -> "joyful and cheerful";
+                    case "LOVE" -> "loving and romantic";
+                    case "GRATITUDE" -> "grateful and appreciative";
+                    case "COMFORT" -> "comforting and soothing";
+                    case "CELEBRATION" -> "celebratory and festive";
+                    default -> "warm and heartfelt";
                 })
                 .distinct()
                 .toList();
-        return String.join(" or ", translations);
-    }
-
-    private String translateEmotionType(Object emotionType) {
-        if (emotionType == null) return "warm and heartfelt";
-        String name = emotionType.toString();
-        return switch (name) {
-            case "JOY" -> "joyful and cheerful";
-            case "LOVE" -> "loving and romantic";
-            case "GRATITUDE" -> "grateful and appreciative";
-            case "COMFORT" -> "comforting and soothing";
-            case "CELEBRATION" -> "celebratory and festive";
-            default -> "warm and heartfelt";
-        };
+        return String.join(" and ", translations);
     }
 
     private String translateBouquetSize(Object bouquetSize) {
@@ -266,6 +314,17 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             case "MEDIUM" -> "medium and balanced";
             case "LARGE" -> "large and impressive";
             default -> "medium";
+        };
+    }
+
+    private String translateWrappingType(Object wrappingType) {
+        if (wrappingType == null) return "kraft paper";
+        String name = wrappingType.toString();
+        return switch (name) {
+            case "KRAFT_PAPER" -> "kraft paper";
+            case "COLOR_PAPER" -> "colored paper";
+            case "CLEAR_VINYL" -> "clear vinyl";
+            default -> "kraft paper";
         };
     }
 

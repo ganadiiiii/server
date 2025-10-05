@@ -11,6 +11,7 @@ import ganadii.hanjum.domain.enums.EmotionType;
 import ganadii.hanjum.domain.enums.FlowerType;
 import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.domain.enums.WhoType;
+import ganadii.hanjum.domain.enums.WrappingType;
 import ganadii.hanjum.dto.FlowerCardDtos;
 import ganadii.hanjum.repository.CardFlowersRepository;
 import ganadii.hanjum.repository.FlowerCardsRepository;
@@ -69,15 +70,16 @@ public class FlowerCardService {
         }
 
         WhoType whoType = resolveEnum(request.whoType(), WhoType.class, WhoType::fromLabel, "whoType");
-        List<WhenType> whenTypes = request.whenTypes().stream()
-                .map(whenTypeStr -> resolveEnum(whenTypeStr, WhenType.class, WhenType::fromLabel, "whenType"))
+        WhenType whenType = resolveEnum(request.whenType(), WhenType.class, WhenType::fromLabel, "whenType");
+        List<EmotionType> emotionTypes = request.emotionTypes().stream()
+                .map(emotionTypeStr -> resolveEnum(emotionTypeStr, EmotionType.class, EmotionType::fromLabel, "emotionType"))
                 .distinct()
                 .collect(Collectors.toList());
-        EmotionType emotionType = resolveEnum(request.emotionType(), EmotionType.class, EmotionType::fromLabel, "emotionType");
         BouquetSize bouquetSize = resolveBouquetSize(request.bouquetSize());
+        WrappingType wrappingType = resolveWrappingType(request.wrappingType());
 
         CardDesignAsset designAsset = cardDesignAssetService.resolveAsset(
-                new CardDesignRequest(mainFlower, whoType, whenTypes, emotionType, bouquetSize)
+                new CardDesignRequest(mainFlower, whoType, whenType, emotionTypes, bouquetSize, wrappingType)
         );
 
         FlowerCards card = FlowerCards.builder()
@@ -88,9 +90,10 @@ public class FlowerCardService {
                 .designAsset(designAsset)
                 .floriography(trimToNull(request.floriography()))
                 .whoType(whoType)
-                .whenTypes(whenTypes)
-                .emotionType(emotionType)
+                .whenType(whenType)
+                .emotionTypes(emotionTypes)
                 .bouquetSize(bouquetSize)
+                .wrappingType(wrappingType)
                 .price(request.price())
                 .build();
 
@@ -172,9 +175,10 @@ public class FlowerCardService {
 
     private static FlowerCardDtos.CardResponse toResponse(FlowerCards card, Flowers mainFlower, CardDesignAsset asset) {
         WhoType whoType = card.getWhoType();
-        List<WhenType> whenTypes = card.getWhenTypes();
-        EmotionType emotionType = card.getEmotionType();
+        WhenType whenType = card.getWhenType();
+        List<EmotionType> emotionTypes = card.getEmotionTypes();
         BouquetSize bouquetSize = card.getBouquetSize();
+        WrappingType wrappingType = card.getWrappingType();
 
         FlowerCardDtos.FlowerSummary flowerSummary = mainFlower == null
                 ? null
@@ -185,12 +189,12 @@ public class FlowerCardService {
                         mainFlower.getImageUrl()
                 );
 
-        List<String> whenTypeNames = (whenTypes == null || whenTypes.isEmpty())
+        List<String> emotionTypeNames = (emotionTypes == null || emotionTypes.isEmpty())
                 ? null
-                : whenTypes.stream().map(WhenType::name).toList();
-        List<String> whenTypeLabels = (whenTypes == null || whenTypes.isEmpty())
+                : emotionTypes.stream().map(EmotionType::name).toList();
+        List<String> emotionTypeLabels = (emotionTypes == null || emotionTypes.isEmpty())
                 ? null
-                : whenTypes.stream().map(WhenType::getLabel).toList();
+                : emotionTypes.stream().map(EmotionType::getLabel).toList();
 
         return new FlowerCardDtos.CardResponse(
                 card.getCardId(),
@@ -200,12 +204,14 @@ public class FlowerCardService {
                 card.getFloriography(),
                 whoType == null ? null : whoType.name(),
                 whoType == null ? null : whoType.getLabel(),
-                whenTypeNames,
-                whenTypeLabels,
-                emotionType == null ? null : emotionType.name(),
-                emotionType == null ? null : emotionType.getLabel(),
+                whenType == null ? null : whenType.name(),
+                whenType == null ? null : whenType.getLabel(),
+                emotionTypeNames,
+                emotionTypeLabels,
                 bouquetSize == null ? null : bouquetSize.name(),
                 bouquetSize == null ? null : bouquetSize.getLabel(),
+                wrappingType == null ? null : wrappingType.name(),
+                wrappingType == null ? null : wrappingType.getLabel(),
                 card.getPrice(),
                 asset == null ? null : asset.getAssetId(),
                 flowerSummary
@@ -232,6 +238,25 @@ public class FlowerCardService {
             return BouquetSize.valueOf(trimmed.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Unknown bouquetSize: " + raw);
+        }
+    }
+
+    private static WrappingType resolveWrappingType(String raw) {
+        if (raw == null) {
+            return null;
+        }
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+        try {
+            return WrappingType.valueOf(trimmed.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            try {
+                return WrappingType.fromLabel(trimmed);
+            } catch (IllegalArgumentException ignored) {
+                throw new IllegalArgumentException("Unknown wrappingType: " + raw);
+            }
         }
     }
 
