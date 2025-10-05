@@ -37,8 +37,8 @@ public class FriendRequestController {
     }
 
     @GetMapping
-    @Operation(summary = "요청 목록", description = "보낸/받은 친구 요청을 조회합니다.")
-    public ResponseEntity<FriendRequestDtos.ListResponse> list(@RequestParam(defaultValue = "received") String type) {
+    @Operation(summary = "요청 목록", description = "보낸/받은 친구 요청을 조회합니다. type: all(기본), sent, received")
+    public ResponseEntity<FriendRequestDtos.ListResponse> list(@RequestParam(defaultValue = "all") String type) {
         UUID userId = SecurityUtils.currentUserIdOrThrow();
         List<FriendRequest> list = friendRequestService.list(userId, type);
         return ResponseEntity.ok(new FriendRequestDtos.ListResponse(list.stream().map(this::toResponse).toList()));
