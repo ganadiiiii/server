@@ -56,9 +56,9 @@ public class FlowerCards {
     @Column(name = "who_type")
     private WhoType whoType;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "when_type")
-    private WhenType whenType;
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "when_types", columnDefinition = "jsonb")
+    private List<WhenType> whenTypes;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "emotion_type")

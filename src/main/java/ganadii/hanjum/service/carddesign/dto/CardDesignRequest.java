@@ -9,9 +9,9 @@ import ganadii.hanjum.domain.enums.WhoType;
 import java.util.List;
 
 public record CardDesignRequest(
-        List<Flowers> mainFlowers,
+        Flowers mainFlower,
         WhoType whoType,
-        WhenType whenType,
+        List<WhenType> whenTypes,
         EmotionType emotionType,
         BouquetSize bouquetSize
 ) {
