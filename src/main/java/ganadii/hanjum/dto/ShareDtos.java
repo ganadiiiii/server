@@ -38,10 +38,12 @@ public class ShareDtos {
             String whoLabel,
             String whenType,
             String whenLabel,
-            String emotionType,
-            String emotionLabel,
+            List<String> emotionTypes,
+            List<String> emotionLabels,
             String bouquetSize,
-            String bouquetLabel
+            String bouquetLabel,
+            String wrappingType,
+            String wrappingLabel
     ) {}
 
     public record ArchiveResponse(List<ShareResponse> items, int page, int size, long totalElements, int totalPages) {}
