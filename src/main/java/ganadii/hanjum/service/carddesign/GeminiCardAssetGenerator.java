@@ -143,38 +143,44 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
      * 프롬프트 생성
      */
     private String buildPrompt(CardDesignRequest request) {
-        // 꽃 정보 수집
-        List<String> flowerNames = request.mainFlowers().stream()
-            .map(f -> f.getEnglishName() != null ? f.getEnglishName() : f.getKoreanName())
-            .collect(Collectors.toList());
-
-        String flowersText = String.join(", ", flowerNames);
+        // 꽃 정보
+        Flowers flower = request.mainFlower();
+        String flowerName = flower.getEnglishName() != null
+                ? flower.getEnglishName()
+                : flower.getKoreanName();
 
         // 시나리오 정보
         String who = translateWhoType(request.whoType());
-        String when = translateWhenType(request.whenType());
+        String when = translateWhenTypes(request.whenTypes());
         String emotion = translateEmotionType(request.emotionType());
         String size = translateBouquetSize(request.bouquetSize());
 
         // 프롬프트 생성
         return String.format(
             "Create a beautiful flower bouquet image with the following specifications:\n" +
-            "- Flowers: %s\n" +
+            "- Main Flower: %s\n" +
             "- Recipient: %s\n" +
             "- Occasion: %s\n" +
             "- Emotion/Mood: %s\n" +
             "- Size: %s\n" +
             "\n" +
-            "Style requirements:\n" +
+            "IMPORTANT: Follow the EXACT SAME STYLE, composition, and visual aesthetic as the reference image provided.\n" +
+            "Match the reference image's:\n" +
+            "- Photography style and lighting\n" +
+            "- Background treatment (color, gradient, texture)\n" +
+            "- Bouquet arrangement style\n" +
+            "- Overall mood and atmosphere\n" +
+            "- Image quality and resolution\n" +
+            "\n" +
+            "Additional requirements:\n" +
             "- High quality, photorealistic style\n" +
-            "- Clean white or soft gradient background\n" +
             "- Professional florist arrangement\n" +
             "- Centered composition\n" +
             "- Natural lighting\n" +
             "- Fresh and vibrant colors\n" +
             "\n" +
             "The bouquet should convey %s feelings and be perfect for giving to %s on %s.",
-            flowersText,
+            flowerName,
             who,
             when,
             emotion,
@@ -189,14 +195,23 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
      * S3 키 생성
      */
     private String buildS3Key(CardDesignRequest request) {
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+        Long flowerId = request.mainFlower().getFlowerId();
         String who = normalize(request.whoType());
-        String when = normalize(request.whenType());
+
+        // whenTypes를 정렬하여 일관된 키 생성
+        String when = (request.whenTypes() == null || request.whenTypes().isEmpty())
+                ? "any"
+                : request.whenTypes().stream()
+                        .map(Enum::name)
+                        .sorted()
+                        .map(String::toLowerCase)
+                        .collect(Collectors.joining("-"));
+
         String emotion = normalize(request.emotionType());
         String size = normalize(request.bouquetSize());
 
-        return String.format("cards/generated/%s-%s-%s-%s-%s.png",
-                flowerHash, who, when, emotion, size);
+        return String.format("cards/generated/%d-%s-%s-%s-%s.png",
+                flowerId, who, when, emotion, size);
     }
 
     // Enum 번역 헬퍼 메서드들
@@ -212,17 +227,22 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         };
     }
 
-    private String translateWhenType(Object whenType) {
-        if (whenType == null) return "a special occasion";
-        String name = whenType.toString();
-        return switch (name) {
-            case "BIRTHDAY" -> "a birthday";
-            case "WEDDING" -> "a wedding";
-            case "GRADUATION" -> "a graduation";
-            case "ANNIVERSARY" -> "an anniversary";
-            case "CONGRATULATION" -> "a congratulation";
-            default -> "a special occasion";
-        };
+    private String translateWhenTypes(List<WhenType> whenTypes) {
+        if (whenTypes == null || whenTypes.isEmpty()) {
+            return "a special occasion";
+        }
+        List<String> translations = whenTypes.stream()
+                .map(type -> switch (type.name()) {
+                    case "BIRTHDAY" -> "a birthday";
+                    case "WEDDING" -> "a wedding";
+                    case "GRADUATION" -> "a graduation";
+                    case "ANNIVERSARY" -> "an anniversary";
+                    case "CONGRATULATION" -> "a congratulation";
+                    default -> "a special occasion";
+                })
+                .distinct()
+                .toList();
+        return String.join(" or ", translations);
     }
 
     private String translateEmotionType(Object emotionType) {

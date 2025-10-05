@@ -56,42 +56,28 @@ public class FlowerCardService {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        List<Long> requestedIds = request.mainFlowerIds();
-        if (requestedIds == null || requestedIds.isEmpty()) {
-            throw new IllegalArgumentException("At least one main flower must be provided");
+        Long mainFlowerId = request.mainFlowerId();
+        if (mainFlowerId == null) {
+            throw new IllegalArgumentException("Main flower must be provided");
         }
 
-        List<Long> normalizedIds = requestedIds.stream()
-                .map(id -> Objects.requireNonNull(id, "mainFlowerIds must not contain null"))
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        LinkedHashSet<Long> distinctIds = new LinkedHashSet<>(normalizedIds);
-        if (distinctIds.size() != normalizedIds.size()) {
-            throw new IllegalArgumentException("Duplicate main flower ids are not allowed");
-        }
-
-        List<Flowers> fetched = flowersRepository.findAllById(distinctIds);
-        Map<Long, Flowers> flowersById = fetched.stream()
-                .collect(Collectors.toMap(Flowers::getFlowerId, Function.identity()));
-        if (flowersById.size() != distinctIds.size()) {
-            throw new IllegalArgumentException("One or more flowers were not found");
-        }
-
-        List<Flowers> orderedMainFlowers = distinctIds.stream()
-                .map(flowersById::get)
-                .collect(Collectors.toCollection(ArrayList::new));
+        Flowers mainFlower = flowersRepository.findById(mainFlowerId)
+                .orElseThrow(() -> new IllegalArgumentException("Flower not found"));
 
         if (request.price() != null && request.price() < 0) {
             throw new IllegalArgumentException("price must be >= 0");
         }
 
         WhoType whoType = resolveEnum(request.whoType(), WhoType.class, WhoType::fromLabel, "whoType");
-        WhenType whenType = resolveEnum(request.whenType(), WhenType.class, WhenType::fromLabel, "whenType");
+        List<WhenType> whenTypes = request.whenTypes().stream()
+                .map(whenTypeStr -> resolveEnum(whenTypeStr, WhenType.class, WhenType::fromLabel, "whenType"))
+                .distinct()
+                .collect(Collectors.toList());
         EmotionType emotionType = resolveEnum(request.emotionType(), EmotionType.class, EmotionType::fromLabel, "emotionType");
         BouquetSize bouquetSize = resolveBouquetSize(request.bouquetSize());
 
         CardDesignAsset designAsset = cardDesignAssetService.resolveAsset(
-                new CardDesignRequest(orderedMainFlowers, whoType, whenType, emotionType, bouquetSize)
+                new CardDesignRequest(mainFlower, whoType, whenTypes, emotionType, bouquetSize)
         );
 
         FlowerCards card = FlowerCards.builder()
@@ -102,7 +88,7 @@ public class FlowerCardService {
                 .designAsset(designAsset)
                 .floriography(trimToNull(request.floriography()))
                 .whoType(whoType)
-                .whenType(whenType)
+                .whenTypes(whenTypes)
                 .emotionType(emotionType)
                 .bouquetSize(bouquetSize)
                 .price(request.price())
@@ -110,17 +96,41 @@ public class FlowerCardService {
 
         FlowerCards saved = flowerCardsRepository.save(card);
 
-        List<CardFlowers> links = orderedMainFlowers.stream()
-                .map(flower -> CardFlowers.builder()
-                        .id(new CardFlowersId(saved.getCardId(), flower.getFlowerId()))
-                        .flowerCards(saved)
-                        .flowers(flower)
-                        .flowerType(FlowerType.MAIN)
-                        .build())
-                .toList();
-        cardFlowersRepository.saveAll(links);
+        // Main 꽃 저장
+        CardFlowers mainLink = CardFlowers.builder()
+                .id(new CardFlowersId(saved.getCardId(), mainFlower.getFlowerId()))
+                .flowerCards(saved)
+                .flowers(mainFlower)
+                .flowerType(FlowerType.MAIN)
+                .build();
+        cardFlowersRepository.save(mainLink);
 
-        return toResponse(saved, orderedMainFlowers, saved.getDesignAsset());
+        // Sub 꽃 저장 (장미, 튤립, 백합 중 랜덤 1개)
+        List<Flowers> candidateSubFlowers = flowersRepository.findByKoreanNameIn(List.of("장미", "튤립", "백합"));
+
+        // main이 장미/튤립/백합 중 하나인지 확인
+        List<Flowers> subCandidates = candidateSubFlowers.stream()
+                .filter(flower -> !flower.getFlowerId().equals(mainFlower.getFlowerId()))
+                .toList();
+
+        // 후보가 없으면 전체 중에서 선택 (main과 다른 것만)
+        if (subCandidates.isEmpty()) {
+            subCandidates = candidateSubFlowers;
+        }
+
+        // 랜덤으로 1개 선택
+        if (!subCandidates.isEmpty()) {
+            Flowers selectedSub = subCandidates.get(new java.util.Random().nextInt(subCandidates.size()));
+            CardFlowers subLink = CardFlowers.builder()
+                    .id(new CardFlowersId(saved.getCardId(), selectedSub.getFlowerId()))
+                    .flowerCards(saved)
+                    .flowers(selectedSub)
+                    .flowerType(FlowerType.SUB)
+                    .build();
+            cardFlowersRepository.save(subLink);
+        }
+
+        return toResponse(saved, mainFlower, saved.getDesignAsset());
     }
 
     @Transactional(readOnly = true)
@@ -128,9 +138,9 @@ public class FlowerCardService {
         Pageable pageable = PageRequest.of(normalizePage(page), normalizeSize(size), Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<FlowerCards> cardPage = flowerCardsRepository.findByCreator_UserId(userId, pageable);
         List<FlowerCards> cards = cardPage.getContent();
-        Map<Long, List<Flowers>> mainFlowers = loadMainFlowers(cards);
+        Map<Long, Flowers> mainFlowers = loadMainFlowers(cards);
         List<FlowerCardDtos.CardResponse> responses = cards.stream()
-                .map(card -> toResponse(card, mainFlowers.getOrDefault(card.getCardId(), List.of()), card.getDesignAsset()))
+                .map(card -> toResponse(card, mainFlowers.get(card.getCardId()), card.getDesignAsset()))
                 .toList();
         return new FlowerCardDtos.CardPageResponse(
                 responses,
@@ -145,8 +155,8 @@ public class FlowerCardService {
     public FlowerCardDtos.CardResponse getMyCard(UUID userId, Long cardId) {
         FlowerCards card = flowerCardsRepository.findByCardIdAndCreator_UserId(cardId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        List<Flowers> mainFlowers = resolveMainFlowers(cardId);
-        return toResponse(card, mainFlowers, card.getDesignAsset());
+        Flowers mainFlower = resolveMainFlower(cardId);
+        return toResponse(card, mainFlower, card.getDesignAsset());
     }
 
     @Transactional
@@ -160,22 +170,27 @@ public class FlowerCardService {
         flowerCardsRepository.delete(card);
     }
 
-    private static FlowerCardDtos.CardResponse toResponse(FlowerCards card, List<Flowers> mainFlowers, CardDesignAsset asset) {
+    private static FlowerCardDtos.CardResponse toResponse(FlowerCards card, Flowers mainFlower, CardDesignAsset asset) {
         WhoType whoType = card.getWhoType();
-        WhenType whenType = card.getWhenType();
+        List<WhenType> whenTypes = card.getWhenTypes();
         EmotionType emotionType = card.getEmotionType();
         BouquetSize bouquetSize = card.getBouquetSize();
-        List<FlowerCardDtos.FlowerSummary> flowerSummaries = (mainFlowers == null || mainFlowers.isEmpty())
-                ? List.of()
-                : mainFlowers.stream()
-                .sorted(Comparator.comparing(Flowers::getFlowerId))
-                .map(flower -> new FlowerCardDtos.FlowerSummary(
-                        flower.getFlowerId(),
-                        flower.getKoreanName(),
-                        flower.getEnglishName(),
-                        flower.getImageUrl()
-                ))
-                .toList();
+
+        FlowerCardDtos.FlowerSummary flowerSummary = mainFlower == null
+                ? null
+                : new FlowerCardDtos.FlowerSummary(
+                        mainFlower.getFlowerId(),
+                        mainFlower.getKoreanName(),
+                        mainFlower.getEnglishName(),
+                        mainFlower.getImageUrl()
+                );
+
+        List<String> whenTypeNames = (whenTypes == null || whenTypes.isEmpty())
+                ? null
+                : whenTypes.stream().map(WhenType::name).toList();
+        List<String> whenTypeLabels = (whenTypes == null || whenTypes.isEmpty())
+                ? null
+                : whenTypes.stream().map(WhenType::getLabel).toList();
 
         return new FlowerCardDtos.CardResponse(
                 card.getCardId(),
@@ -185,15 +200,15 @@ public class FlowerCardService {
                 card.getFloriography(),
                 whoType == null ? null : whoType.name(),
                 whoType == null ? null : whoType.getLabel(),
-                whenType == null ? null : whenType.name(),
-                whenType == null ? null : whenType.getLabel(),
+                whenTypeNames,
+                whenTypeLabels,
                 emotionType == null ? null : emotionType.name(),
                 emotionType == null ? null : emotionType.getLabel(),
                 bouquetSize == null ? null : bouquetSize.name(),
                 bouquetSize == null ? null : bouquetSize.getLabel(),
                 card.getPrice(),
                 asset == null ? null : asset.getAssetId(),
-                flowerSummaries
+                flowerSummary
         );
     }
 
@@ -245,15 +260,15 @@ public class FlowerCardService {
         }
     }
 
-    private List<Flowers> resolveMainFlowers(Long cardId) {
+    private Flowers resolveMainFlower(Long cardId) {
         return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
                 .filter(cf -> cf.getFlowerType() == FlowerType.MAIN)
                 .map(CardFlowers::getFlowers)
-                .sorted(Comparator.comparing(Flowers::getFlowerId))
-                .toList();
+                .findFirst()
+                .orElse(null);
     }
 
-    private Map<Long, List<Flowers>> loadMainFlowers(List<FlowerCards> cards) {
+    private Map<Long, Flowers> loadMainFlowers(List<FlowerCards> cards) {
         if (cards == null || cards.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -264,19 +279,13 @@ public class FlowerCardService {
         if (cardIds.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<Long, List<CardFlowers>> grouped = cardFlowersRepository.findByFlowerCards_CardIdIn(cardIds).stream()
+        return cardFlowersRepository.findByFlowerCards_CardIdIn(cardIds).stream()
                 .filter(cf -> cf.getFlowerType() == FlowerType.MAIN)
-                .collect(Collectors.groupingBy(cf -> cf.getFlowerCards().getCardId()));
-
-        Map<Long, List<Flowers>> result = new HashMap<>();
-        for (Map.Entry<Long, List<CardFlowers>> entry : grouped.entrySet()) {
-            List<Flowers> ordered = entry.getValue().stream()
-                    .map(CardFlowers::getFlowers)
-                    .sorted(Comparator.comparing(Flowers::getFlowerId))
-                    .toList();
-            result.put(entry.getKey(), ordered);
-        }
-        return result;
+                .collect(Collectors.toMap(
+                        cf -> cf.getFlowerCards().getCardId(),
+                        CardFlowers::getFlowers,
+                        (existing, replacement) -> existing  // Keep first if duplicate
+                ));
     }
 
     private static int normalizePage(int page) {

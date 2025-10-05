@@ -11,4 +11,5 @@ import java.util.List;
 public interface FlowersRepository extends JpaRepository<Flowers, Long> {
     List<Flowers> findByKoreanNameContainingIgnoreCase(String keyword);
     List<Flowers> findByEnglishNameContainingIgnoreCase(String keyword);
+    List<Flowers> findByKoreanNameIn(List<String> koreanNames);
 }
