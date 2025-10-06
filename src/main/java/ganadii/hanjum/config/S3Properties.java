@@ -11,28 +11,15 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "app.s3")
 public class S3Properties {
 
-    /**
-     * S3 버킷 이름
-     */
     private String bucketName;
-
-    /**
-     * AWS 리전 (예: ap-northeast-2)
-     */
     private String region = "ap-northeast-2";
 
-    /**
-     * AWS Access Key ID (optional, IAM Role 사용 시 불필요)
-     */
+    // AWS Access Key ID (optional, IAM Role 사용 시 불필요)
     private String accessKeyId;
 
-    /**
-     * AWS Secret Access Key (optional, IAM Role 사용 시 불필요)
-     */
+    // AWS Secret Access Key (optional, IAM Role 사용 시 불필요)
     private String secretAccessKey;
 
-    /**
-     * S3 base URL (CloudFront 또는 커스텀 도메인)
-     */
+    // S3 base URL (CloudFront 또는 커스텀 도메인)
     private String baseUrl;
 }

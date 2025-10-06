@@ -2,6 +2,8 @@ package ganadii.hanjum.service.carddesign;
 
 import ganadii.hanjum.domain.Flowers;
 import ganadii.hanjum.domain.enums.CardImageSource;
+import ganadii.hanjum.domain.enums.EmotionType;
+import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.service.S3Service;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
 import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
@@ -34,6 +36,10 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private final S3Service s3Service;
     private final RestTemplate restTemplate;
+
+    // S3 경로 constants
+    private static final String FLOWER_ASSETS_PATH = "main_flowers";
+    private static final String BOUQUET_REFERENCE_PATH = "cards/reference";
 
     @Value("${app.gemini.api-url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent}")
     private String geminiApiUrl;
@@ -69,7 +75,100 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
-     * Gemini API 호출
+     * 개별 꽃 에셋 이미지를 Base64로 로드
+     */
+    private String loadFlowerAssetAsBase64(Flowers flower) {
+        if (flower == null) {
+            return null;
+        }
+
+        try {
+            String fileName = flower.getEnglishName()
+                    .toLowerCase()
+                    .replace(" ", "")
+                    .replace("'", "");
+
+            String assetKey = String.format("%s/%s.png", FLOWER_ASSETS_PATH, fileName);
+
+            if (s3Service.exists(assetKey)) {
+                byte[] imageBytes = s3Service.download(assetKey);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    log.warn("Flower asset is empty: {}", assetKey);
+                    return null;
+                }
+                log.info("Flower asset loaded: {} → {} (size={})", flower.getKoreanName(), assetKey, imageBytes.length);
+                return Base64.getEncoder().encodeToString(imageBytes);
+            }
+
+            log.warn("Flower asset not found: {}", assetKey);
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to load flower asset: {}", flower.getKoreanName(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 꽃다발 스타일 참고 이미지를 Base64로 로드
+     * 네이밍 규칙: {flowerId}-{size}.png
+     */
+    private String loadBouquetStyleReferenceAsBase64(CardDesignRequest request) {
+        Long flowerId = request.mainFlower().getFlowerId();
+        String size = request.bouquetSize() == null
+            ? "medium"
+            : request.bouquetSize().name().toLowerCase();
+
+        String referenceKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, size);
+
+        try {
+            if (s3Service.exists(referenceKey)) {
+                byte[] imageBytes = s3Service.download(referenceKey);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    log.warn("Bouquet reference is empty: {}", referenceKey);
+                    return null;
+                }
+                log.info("Bouquet style reference loaded: {} (size={})", referenceKey, imageBytes.length);
+                return Base64.getEncoder().encodeToString(imageBytes);
+            }
+
+            log.warn("Bouquet reference not found: {}", referenceKey);
+        } catch (Exception e) {
+            log.warn("Failed to load bouquet reference: {}", referenceKey, e);
+        }
+
+        // Fallback 1: Try same flower with medium size
+        if (!"medium".equals(size)) {
+            try {
+                String fallbackKey = String.format("%s/%d-medium.png", BOUQUET_REFERENCE_PATH, flowerId);
+                if (s3Service.exists(fallbackKey)) {
+                    byte[] imageBytes = s3Service.download(fallbackKey);
+                    log.info("Using fallback bouquet reference (medium size): {}", fallbackKey);
+                    return Base64.getEncoder().encodeToString(imageBytes);
+                }
+            } catch (Exception e) {
+                log.warn("Fallback to medium size also failed", e);
+            }
+        }
+
+        // Fallback 2: Try any size for this flower
+        try {
+            for (String fallbackSize : List.of("medium", "small", "large")) {
+                String fallbackKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, fallbackSize);
+                if (s3Service.exists(fallbackKey)) {
+                    byte[] imageBytes = s3Service.download(fallbackKey);
+                    log.info("Using fallback bouquet reference (any size): {}", fallbackKey);
+                    return Base64.getEncoder().encodeToString(imageBytes);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("All fallback attempts failed", e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gemini API 호출 (트리플 이미지 입력 방식)
      */
     private byte[] callGeminiApi(CardDesignRequest request) {
         if (geminiApiKey == null || geminiApiKey.isEmpty()) {
@@ -82,34 +181,76 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String prompt = buildPrompt(request);
             log.info("Generated prompt: {}", prompt);
 
-            // 2. Request Body 구성
+            // 2. 3개 이미지 로드
+            String mainFlowerBase64 = loadFlowerAssetAsBase64(request.mainFlower());
+            String subFlowerBase64 = loadFlowerAssetAsBase64(request.subFlower());
+            String bouquetStyleBase64 = loadBouquetStyleReferenceAsBase64(request);
+
+            // 3. Request Body 구성 (3개 이미지 + 텍스트 프롬프트)
+            List<Map<String, Object>> parts = new java.util.ArrayList<>();
+
+            // 이미지 1: 메인 꽃 개별 에셋
+            if (mainFlowerBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", mainFlowerBase64
+                    )
+                ));
+                log.info("Main flower asset included: {}", request.mainFlower().getKoreanName());
+            }
+
+            // 이미지 2: 서브 꽃 개별 에셋
+            if (subFlowerBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", subFlowerBase64
+                    )
+                ));
+                log.info("Sub flower asset included: {}", request.subFlower().getKoreanName());
+            }
+
+            // 이미지 3: 꽃다발 스타일 참고
+            if (bouquetStyleBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", bouquetStyleBase64
+                    )
+                ));
+                log.info("Bouquet style reference included: {}",
+                    request.bouquetSize() == null ? "medium" : request.bouquetSize().name().toLowerCase());
+            }
+
+            // 텍스트 프롬프트 추가
+            parts.add(Map.of("text", prompt));
+
             Map<String, Object> requestBody = Map.of(
                 "contents", List.of(
-                    Map.of("parts", List.of(
-                        Map.of("text", prompt)
-                    ))
+                    Map.of("parts", parts)
                 ),
                 "generationConfig", Map.of(
                     "responseModalities", List.of("Image")
                 )
             );
 
-            // 3. Headers 설정
+            // 4. Headers 설정
             HttpHeaders headers = new HttpHeaders();
             headers.set("x-goog-api-key", geminiApiKey);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            // 4. API 호출
-            log.info("Calling Gemini API: {}", geminiApiUrl);
+            // 5. API 호출
+            log.info("Calling Gemini API with {} images: {}", parts.size() - 1, geminiApiUrl);
             ResponseEntity<GeminiApiResponse.Response> response = restTemplate.postForEntity(
                 geminiApiUrl,
                 entity,
                 GeminiApiResponse.Response.class
             );
 
-            // 5. Response 파싱
+            // 6. Response 파싱
             GeminiApiResponse.Response body = response.getBody();
             if (body == null || body.candidates() == null || body.candidates().isEmpty()) {
                 throw new RuntimeException("Empty or invalid response from Gemini API");
@@ -130,7 +271,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("No image data in Gemini response"));
 
-            // 6. Base64 디코딩
+            // 7. Base64 디코딩
             return Base64.getDecoder().decode(inlineData.data());
 
         } catch (Exception e) {
@@ -140,45 +281,75 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
-     * 프롬프트 생성
+     * 프롬프트 생성 (트리플 이미지 전략)
      */
     private String buildPrompt(CardDesignRequest request) {
-        // 꽃 정보 수집
-        List<String> flowerNames = request.mainFlowers().stream()
-            .map(f -> f.getEnglishName() != null ? f.getEnglishName() : f.getKoreanName())
-            .collect(Collectors.toList());
-
-        String flowersText = String.join(", ", flowerNames);
+        // 꽃 정보
+        Flowers mainFlower = request.mainFlower();
+        Flowers subFlower = request.subFlower();
+        String mainFlowerName = mainFlower.getEnglishName() != null
+                ? mainFlower.getEnglishName()
+                : mainFlower.getKoreanName();
+        String subFlowerName = subFlower != null && subFlower.getEnglishName() != null
+                ? subFlower.getEnglishName()
+                : (subFlower != null ? subFlower.getKoreanName() : "complementary flowers");
 
         // 시나리오 정보
         String who = translateWhoType(request.whoType());
         String when = translateWhenType(request.whenType());
-        String emotion = translateEmotionType(request.emotionType());
+        String emotion = translateEmotionTypes(request.emotionTypes());
         String size = translateBouquetSize(request.bouquetSize());
+        String wrapping = translateWrappingType(request.wrappingType());
 
         // 프롬프트 생성
         return String.format(
-            "Create a beautiful flower bouquet image with the following specifications:\n" +
-            "- Flowers: %s\n" +
+            "You are provided with THREE reference images:\n" +
+            "1. Image 1: Individual %s flower asset (transparent background)\n" +
+            "2. Image 2: Individual %s flower asset (transparent background)\n" +
+            "3. Image 3: Complete bouquet style reference showing composition and wrapping\n" +
+            "\n" +
+            "Create a beautiful flower bouquet with these specifications:\n" +
+            "- Main Flower: %s (must be prominent, 50%% of bouquet)\n" +
+            "- Supporting Flower: %s (supporting role, 30%% of bouquet)\n" +
+            "- Additional Flowers: Add 2-3 complementary flowers (20%% of bouquet) for variety\n" +
             "- Recipient: %s\n" +
             "- Occasion: %s\n" +
             "- Emotion/Mood: %s\n" +
             "- Size: %s\n" +
+            "- Wrapping: %s\n" +
             "\n" +
-            "Style requirements:\n" +
+            "CRITICAL REQUIREMENTS:\n" +
+            "1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (50%% prominence)\n" +
+            "2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (30%%)\n" +
+            "3. VARIETY: Add 2-3 other complementary flowers for depth (20%%)\n" +
+            "4. STYLE: Match Image 3's exact visual style:\n" +
+            "   - Photography style and lighting\n" +
+            "   - Background treatment (color, gradient, texture)\n" +
+            "   - Bouquet arrangement and wrapping style\n" +
+            "   - Overall mood and atmosphere\n" +
+            "   - Image quality and resolution\n" +
+            "\n" +
+            "Additional requirements:\n" +
             "- High quality, photorealistic style\n" +
-            "- Clean white or soft gradient background\n" +
             "- Professional florist arrangement\n" +
             "- Centered composition\n" +
             "- Natural lighting\n" +
             "- Fresh and vibrant colors\n" +
+            "- Use %s wrapping paper as specified in Image 3\n" +
             "\n" +
             "The bouquet should convey %s feelings and be perfect for giving to %s on %s.",
-            flowersText,
+            mainFlowerName,
+            subFlowerName,
+            mainFlowerName,
+            subFlowerName,
             who,
             when,
             emotion,
             size,
+            wrapping,
+            mainFlowerName,
+            subFlowerName,
+            wrapping.toLowerCase(),
             emotion.toLowerCase(),
             who.toLowerCase(),
             when.toLowerCase()
@@ -189,14 +360,19 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
      * S3 키 생성
      */
     private String buildS3Key(CardDesignRequest request) {
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlowers());
+        Long flowerId = request.mainFlower().getFlowerId();
         String who = normalize(request.whoType());
         String when = normalize(request.whenType());
-        String emotion = normalize(request.emotionType());
+
+        // Use first emotion for S3 key
+        String emotion = (request.emotionTypes() == null || request.emotionTypes().isEmpty())
+                ? "any"
+                : request.emotionTypes().get(0).name().toLowerCase();
+
         String size = normalize(request.bouquetSize());
 
-        return String.format("cards/generated/%s-%s-%s-%s-%s.png",
-                flowerHash, who, when, emotion, size);
+        return String.format("cards/generated/%d-%s-%s-%s-%s.png",
+                flowerId, who, when, emotion, size);
     }
 
     // Enum 번역 헬퍼 메서드들
@@ -212,10 +388,11 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         };
     }
 
-    private String translateWhenType(Object whenType) {
-        if (whenType == null) return "a special occasion";
-        String name = whenType.toString();
-        return switch (name) {
+    private String translateWhenType(WhenType whenType) {
+        if (whenType == null) {
+            return "a special occasion";
+        }
+        return switch (whenType.name()) {
             case "BIRTHDAY" -> "a birthday";
             case "WEDDING" -> "a wedding";
             case "GRADUATION" -> "a graduation";
@@ -225,17 +402,22 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         };
     }
 
-    private String translateEmotionType(Object emotionType) {
-        if (emotionType == null) return "warm and heartfelt";
-        String name = emotionType.toString();
-        return switch (name) {
-            case "JOY" -> "joyful and cheerful";
-            case "LOVE" -> "loving and romantic";
-            case "GRATITUDE" -> "grateful and appreciative";
-            case "COMFORT" -> "comforting and soothing";
-            case "CELEBRATION" -> "celebratory and festive";
-            default -> "warm and heartfelt";
-        };
+    private String translateEmotionTypes(List<EmotionType> emotionTypes) {
+        if (emotionTypes == null || emotionTypes.isEmpty()) {
+            return "warm and heartfelt";
+        }
+        List<String> translations = emotionTypes.stream()
+                .map(type -> switch (type.name()) {
+                    case "JOY" -> "joyful and cheerful";
+                    case "LOVE" -> "loving and romantic";
+                    case "GRATITUDE" -> "grateful and appreciative";
+                    case "COMFORT" -> "comforting and soothing";
+                    case "CELEBRATION" -> "celebratory and festive";
+                    default -> "warm and heartfelt";
+                })
+                .distinct()
+                .toList();
+        return String.join(" and ", translations);
     }
 
     private String translateBouquetSize(Object bouquetSize) {
@@ -246,6 +428,17 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             case "MEDIUM" -> "medium and balanced";
             case "LARGE" -> "large and impressive";
             default -> "medium";
+        };
+    }
+
+    private String translateWrappingType(Object wrappingType) {
+        if (wrappingType == null) return "kraft paper";
+        String name = wrappingType.toString();
+        return switch (name) {
+            case "KRAFT_PAPER" -> "kraft paper";
+            case "COLOR_PAPER" -> "colored paper";
+            case "CLEAR_VINYL" -> "clear vinyl";
+            default -> "kraft paper";
         };
     }
 

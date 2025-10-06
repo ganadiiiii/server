@@ -55,9 +55,15 @@ public class FriendRequestService {
     public List<FriendRequest> list(UUID userId, String type) {
         if ("sent".equalsIgnoreCase(type)) {
             return friendRequestRepository.findBySender_UserId(userId);
+        } else if ("received".equalsIgnoreCase(type)) {
+            return friendRequestRepository.findByReceiver_UserId(userId);
         }
-        // default received
-        return friendRequestRepository.findByReceiver_UserId(userId);
+        // default: all (sent + received)
+        List<FriendRequest> sent = friendRequestRepository.findBySender_UserId(userId);
+        List<FriendRequest> received = friendRequestRepository.findByReceiver_UserId(userId);
+        List<FriendRequest> all = new java.util.ArrayList<>(sent);
+        all.addAll(received);
+        return all;
     }
 
     @Transactional

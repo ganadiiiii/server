@@ -114,6 +114,13 @@ public class ShareController {
     }
 
     private ShareDtos.ShareResponse toResponse(Shares s) {
+        List<String> emotionTypeNames = (s.getFlowerCards().getEmotionTypes() == null || s.getFlowerCards().getEmotionTypes().isEmpty())
+                ? null
+                : s.getFlowerCards().getEmotionTypes().stream().map(Enum::name).toList();
+        List<String> emotionTypeLabels = (s.getFlowerCards().getEmotionTypes() == null || s.getFlowerCards().getEmotionTypes().isEmpty())
+                ? null
+                : s.getFlowerCards().getEmotionTypes().stream().map(ganadii.hanjum.domain.enums.EmotionType::getLabel).toList();
+
         return new ShareDtos.ShareResponse(
                 s.getShareId(),
                 s.getFlowerCards().getCardId(),
@@ -132,10 +139,12 @@ public class ShareController {
                         s.getFlowerCards().getWhoType() == null ? null : s.getFlowerCards().getWhoType().getLabel(),
                         s.getFlowerCards().getWhenType() == null ? null : s.getFlowerCards().getWhenType().name(),
                         s.getFlowerCards().getWhenType() == null ? null : s.getFlowerCards().getWhenType().getLabel(),
-                        s.getFlowerCards().getEmotionType() == null ? null : s.getFlowerCards().getEmotionType().name(),
-                        s.getFlowerCards().getEmotionType() == null ? null : s.getFlowerCards().getEmotionType().getLabel(),
+                        emotionTypeNames,
+                        emotionTypeLabels,
                         s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().name(),
-                        s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel()
+                        s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel(),
+                        s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().name(),
+                        s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().getLabel()
                 )
         );
     }

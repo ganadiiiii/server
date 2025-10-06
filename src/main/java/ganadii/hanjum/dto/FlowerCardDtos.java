@@ -9,13 +9,14 @@ import java.util.List;
 public class FlowerCardDtos {
 
     public record CreateCardRequest(
-            @NotNull @Size(min = 1, max = 10) List<@NotNull Long> mainFlowerIds,
+            @NotNull Long mainFlowerId,
             @Size(max = 100) String title,
             @Size(max = 500) String floriography,
             @NotBlank String whoType,
             @NotBlank String whenType,
-            @NotBlank String emotionType,
+            @NotNull @Size(min = 1, max = 5) List<@NotBlank String> emotionTypes,
             String bouquetSize,
+            String wrappingType,
             Integer price
     ) {}
 
@@ -29,13 +30,15 @@ public class FlowerCardDtos {
             String whoLabel,
             String whenType,
             String whenLabel,
-            String emotionType,
-            String emotionLabel,
+            List<String> emotionTypes,
+            List<String> emotionLabels,
             String bouquetSize,
             String bouquetLabel,
+            String wrappingType,
+            String wrappingLabel,
             Integer price,
             Long designAssetId,
-            List<FlowerSummary> mainFlowers
+            FlowerSummary mainFlower
     ) {}
 
     public record CardPageResponse(
