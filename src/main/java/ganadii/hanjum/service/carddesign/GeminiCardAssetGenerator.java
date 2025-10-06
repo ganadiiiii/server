@@ -37,8 +37,9 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     private final S3Service s3Service;
     private final RestTemplate restTemplate;
 
-    // 참고 이미지 S3 키 (디자이너가 작업한 꽃다발 이미지)
-    private static final String REFERENCE_IMAGE_KEY = "cards/reference/designer-bouquet.png";
+    // S3 경로 constants
+    private static final String FLOWER_ASSETS_PATH = "main_flowers";
+    private static final String BOUQUET_REFERENCE_PATH = "cards/reference";
 
     @Value("${app.gemini.api-url:https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent}")
     private String geminiApiUrl;
@@ -74,31 +75,100 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
-     * S3에서 참고 이미지를 로드하여 Base64로 인코딩
+     * 개별 꽃 에셋 이미지를 Base64로 로드
      */
-    private String loadReferenceImageAsBase64() {
+    private String loadFlowerAssetAsBase64(Flowers flower) {
+        if (flower == null) {
+            return null;
+        }
+
         try {
-            String referenceKey = REFERENCE_IMAGE_KEY;
-            if (!s3Service.exists(referenceKey)) {
-                log.warn("Reference image not found in S3: {}", referenceKey);
-                return null;
+            String fileName = flower.getEnglishName()
+                    .toLowerCase()
+                    .replace(" ", "")
+                    .replace("'", "");
+
+            String assetKey = String.format("%s/%s.png", FLOWER_ASSETS_PATH, fileName);
+
+            if (s3Service.exists(assetKey)) {
+                byte[] imageBytes = s3Service.download(assetKey);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    log.warn("Flower asset is empty: {}", assetKey);
+                    return null;
+                }
+                log.info("Flower asset loaded: {} → {} (size={})", flower.getKoreanName(), assetKey, imageBytes.length);
+                return Base64.getEncoder().encodeToString(imageBytes);
             }
-            byte[] imageBytes = s3Service.download(referenceKey);
-            if (imageBytes == null || imageBytes.length == 0) {
-                log.warn("Reference image is empty: {}", referenceKey);
-                return null;
-            }
-            String base64 = Base64.getEncoder().encodeToString(imageBytes);
-            log.info("Reference image loaded successfully: key={}, size={}", referenceKey, imageBytes.length);
-            return base64;
+
+            log.warn("Flower asset not found: {}", assetKey);
+            return null;
         } catch (Exception e) {
-            log.error("Failed to load reference image from S3", e);
+            log.error("Failed to load flower asset: {}", flower.getKoreanName(), e);
             return null;
         }
     }
 
     /**
-     * Gemini API 호출
+     * 꽃다발 스타일 참고 이미지를 Base64로 로드
+     * 네이밍 규칙: {flowerId}-{size}.png
+     */
+    private String loadBouquetStyleReferenceAsBase64(CardDesignRequest request) {
+        Long flowerId = request.mainFlower().getFlowerId();
+        String size = request.bouquetSize() == null
+            ? "medium"
+            : request.bouquetSize().name().toLowerCase();
+
+        String referenceKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, size);
+
+        try {
+            if (s3Service.exists(referenceKey)) {
+                byte[] imageBytes = s3Service.download(referenceKey);
+                if (imageBytes == null || imageBytes.length == 0) {
+                    log.warn("Bouquet reference is empty: {}", referenceKey);
+                    return null;
+                }
+                log.info("Bouquet style reference loaded: {} (size={})", referenceKey, imageBytes.length);
+                return Base64.getEncoder().encodeToString(imageBytes);
+            }
+
+            log.warn("Bouquet reference not found: {}", referenceKey);
+        } catch (Exception e) {
+            log.warn("Failed to load bouquet reference: {}", referenceKey, e);
+        }
+
+        // Fallback 1: Try same flower with medium size
+        if (!"medium".equals(size)) {
+            try {
+                String fallbackKey = String.format("%s/%d-medium.png", BOUQUET_REFERENCE_PATH, flowerId);
+                if (s3Service.exists(fallbackKey)) {
+                    byte[] imageBytes = s3Service.download(fallbackKey);
+                    log.info("Using fallback bouquet reference (medium size): {}", fallbackKey);
+                    return Base64.getEncoder().encodeToString(imageBytes);
+                }
+            } catch (Exception e) {
+                log.warn("Fallback to medium size also failed", e);
+            }
+        }
+
+        // Fallback 2: Try any size for this flower
+        try {
+            for (String fallbackSize : List.of("medium", "small", "large")) {
+                String fallbackKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, fallbackSize);
+                if (s3Service.exists(fallbackKey)) {
+                    byte[] imageBytes = s3Service.download(fallbackKey);
+                    log.info("Using fallback bouquet reference (any size): {}", fallbackKey);
+                    return Base64.getEncoder().encodeToString(imageBytes);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("All fallback attempts failed", e);
+        }
+
+        return null;
+    }
+
+    /**
+     * Gemini API 호출 (트리플 이미지 입력 방식)
      */
     private byte[] callGeminiApi(CardDesignRequest request) {
         if (geminiApiKey == null || geminiApiKey.isEmpty()) {
@@ -111,21 +181,46 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String prompt = buildPrompt(request);
             log.info("Generated prompt: {}", prompt);
 
-            // 2. 참고 이미지 로드
-            String referenceImageBase64 = loadReferenceImageAsBase64();
+            // 2. 3개 이미지 로드
+            String mainFlowerBase64 = loadFlowerAssetAsBase64(request.mainFlower());
+            String subFlowerBase64 = loadFlowerAssetAsBase64(request.subFlower());
+            String bouquetStyleBase64 = loadBouquetStyleReferenceAsBase64(request);
 
-            // 3. Request Body 구성 (참고 이미지 포함)
+            // 3. Request Body 구성 (3개 이미지 + 텍스트 프롬프트)
             List<Map<String, Object>> parts = new java.util.ArrayList<>();
 
-            // 참고 이미지가 있으면 먼저 추가
-            if (referenceImageBase64 != null) {
+            // 이미지 1: 메인 꽃 개별 에셋
+            if (mainFlowerBase64 != null) {
                 parts.add(Map.of(
                     "inline_data", Map.of(
                         "mime_type", "image/png",
-                        "data", referenceImageBase64
+                        "data", mainFlowerBase64
                     )
                 ));
-                log.info("Reference image included in Gemini API request");
+                log.info("Main flower asset included: {}", request.mainFlower().getKoreanName());
+            }
+
+            // 이미지 2: 서브 꽃 개별 에셋
+            if (subFlowerBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", subFlowerBase64
+                    )
+                ));
+                log.info("Sub flower asset included: {}", request.subFlower().getKoreanName());
+            }
+
+            // 이미지 3: 꽃다발 스타일 참고
+            if (bouquetStyleBase64 != null) {
+                parts.add(Map.of(
+                    "inline_data", Map.of(
+                        "mime_type", "image/png",
+                        "data", bouquetStyleBase64
+                    )
+                ));
+                log.info("Bouquet style reference included: {}",
+                    request.bouquetSize() == null ? "medium" : request.bouquetSize().name().toLowerCase());
             }
 
             // 텍스트 프롬프트 추가
@@ -140,22 +235,22 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                 )
             );
 
-            // 3. Headers 설정
+            // 4. Headers 설정
             HttpHeaders headers = new HttpHeaders();
             headers.set("x-goog-api-key", geminiApiKey);
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
 
-            // 4. API 호출
-            log.info("Calling Gemini API: {}", geminiApiUrl);
+            // 5. API 호출
+            log.info("Calling Gemini API with {} images: {}", parts.size() - 1, geminiApiUrl);
             ResponseEntity<GeminiApiResponse.Response> response = restTemplate.postForEntity(
                 geminiApiUrl,
                 entity,
                 GeminiApiResponse.Response.class
             );
 
-            // 5. Response 파싱
+            // 6. Response 파싱
             GeminiApiResponse.Response body = response.getBody();
             if (body == null || body.candidates() == null || body.candidates().isEmpty()) {
                 throw new RuntimeException("Empty or invalid response from Gemini API");
@@ -176,7 +271,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("No image data in Gemini response"));
 
-            // 6. Base64 디코딩
+            // 7. Base64 디코딩
             return Base64.getDecoder().decode(inlineData.data());
 
         } catch (Exception e) {
@@ -186,14 +281,18 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
-     * 프롬프트 생성
+     * 프롬프트 생성 (트리플 이미지 전략)
      */
     private String buildPrompt(CardDesignRequest request) {
         // 꽃 정보
-        Flowers flower = request.mainFlower();
-        String flowerName = flower.getEnglishName() != null
-                ? flower.getEnglishName()
-                : flower.getKoreanName();
+        Flowers mainFlower = request.mainFlower();
+        Flowers subFlower = request.subFlower();
+        String mainFlowerName = mainFlower.getEnglishName() != null
+                ? mainFlower.getEnglishName()
+                : mainFlower.getKoreanName();
+        String subFlowerName = subFlower != null && subFlower.getEnglishName() != null
+                ? subFlower.getEnglishName()
+                : (subFlower != null ? subFlower.getKoreanName() : "complementary flowers");
 
         // 시나리오 정보
         String who = translateWhoType(request.whoType());
@@ -204,21 +303,31 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
         // 프롬프트 생성
         return String.format(
-            "Create a beautiful flower bouquet image with the following specifications:\n" +
-            "- Main Flower: %s\n" +
+            "You are provided with THREE reference images:\n" +
+            "1. Image 1: Individual %s flower asset (transparent background)\n" +
+            "2. Image 2: Individual %s flower asset (transparent background)\n" +
+            "3. Image 3: Complete bouquet style reference showing composition and wrapping\n" +
+            "\n" +
+            "Create a beautiful flower bouquet with these specifications:\n" +
+            "- Main Flower: %s (must be prominent, 50%% of bouquet)\n" +
+            "- Supporting Flower: %s (supporting role, 30%% of bouquet)\n" +
+            "- Additional Flowers: Add 2-3 complementary flowers (20%% of bouquet) for variety\n" +
             "- Recipient: %s\n" +
             "- Occasion: %s\n" +
             "- Emotion/Mood: %s\n" +
             "- Size: %s\n" +
             "- Wrapping: %s\n" +
             "\n" +
-            "IMPORTANT: Follow the EXACT SAME STYLE, composition, and visual aesthetic as the reference image provided.\n" +
-            "Match the reference image's:\n" +
-            "- Photography style and lighting\n" +
-            "- Background treatment (color, gradient, texture)\n" +
-            "- Bouquet arrangement style\n" +
-            "- Overall mood and atmosphere\n" +
-            "- Image quality and resolution\n" +
+            "CRITICAL REQUIREMENTS:\n" +
+            "1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (50%% prominence)\n" +
+            "2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (30%%)\n" +
+            "3. VARIETY: Add 2-3 other complementary flowers for depth (20%%)\n" +
+            "4. STYLE: Match Image 3's exact visual style:\n" +
+            "   - Photography style and lighting\n" +
+            "   - Background treatment (color, gradient, texture)\n" +
+            "   - Bouquet arrangement and wrapping style\n" +
+            "   - Overall mood and atmosphere\n" +
+            "   - Image quality and resolution\n" +
             "\n" +
             "Additional requirements:\n" +
             "- High quality, photorealistic style\n" +
@@ -226,15 +335,20 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             "- Centered composition\n" +
             "- Natural lighting\n" +
             "- Fresh and vibrant colors\n" +
-            "- Use %s wrapping paper as specified\n" +
+            "- Use %s wrapping paper as specified in Image 3\n" +
             "\n" +
             "The bouquet should convey %s feelings and be perfect for giving to %s on %s.",
-            flowerName,
+            mainFlowerName,
+            subFlowerName,
+            mainFlowerName,
+            subFlowerName,
             who,
             when,
             emotion,
             size,
             wrapping,
+            mainFlowerName,
+            subFlowerName,
             wrapping.toLowerCase(),
             emotion.toLowerCase(),
             who.toLowerCase(),

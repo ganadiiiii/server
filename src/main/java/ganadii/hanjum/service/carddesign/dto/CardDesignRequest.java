@@ -11,6 +11,7 @@ import java.util.List;
 
 public record CardDesignRequest(
         Flowers mainFlower,
+        Flowers subFlower,
         WhoType whoType,
         WhenType whenType,
         List<EmotionType> emotionTypes,

@@ -78,8 +78,27 @@ public class FlowerCardService {
         BouquetSize bouquetSize = resolveBouquetSize(request.bouquetSize());
         WrappingType wrappingType = resolveWrappingType(request.wrappingType());
 
+        // Sub 꽃 선택 (장미, 튤립, 백합 중 랜덤 1개)
+        List<Flowers> candidateSubFlowers = flowersRepository.findByKoreanNameIn(List.of("장미", "튤립", "백합"));
+
+        // main이 장미/튤립/백합 중 하나인지 확인
+        List<Flowers> subCandidates = candidateSubFlowers.stream()
+                .filter(flower -> !flower.getFlowerId().equals(mainFlower.getFlowerId()))
+                .toList();
+
+        // 후보가 없으면 전체 중에서 선택 (main과 다른 것만)
+        if (subCandidates.isEmpty()) {
+            subCandidates = candidateSubFlowers;
+        }
+
+        // 랜덤으로 1개 선택
+        Flowers selectedSub = null;
+        if (!subCandidates.isEmpty()) {
+            selectedSub = subCandidates.get(new java.util.Random().nextInt(subCandidates.size()));
+        }
+
         CardDesignAsset designAsset = cardDesignAssetService.resolveAsset(
-                new CardDesignRequest(mainFlower, whoType, whenType, emotionTypes, bouquetSize, wrappingType)
+                new CardDesignRequest(mainFlower, selectedSub, whoType, whenType, emotionTypes, bouquetSize, wrappingType)
         );
 
         FlowerCards card = FlowerCards.builder()
@@ -108,22 +127,8 @@ public class FlowerCardService {
                 .build();
         cardFlowersRepository.save(mainLink);
 
-        // Sub 꽃 저장 (장미, 튤립, 백합 중 랜덤 1개)
-        List<Flowers> candidateSubFlowers = flowersRepository.findByKoreanNameIn(List.of("장미", "튤립", "백합"));
-
-        // main이 장미/튤립/백합 중 하나인지 확인
-        List<Flowers> subCandidates = candidateSubFlowers.stream()
-                .filter(flower -> !flower.getFlowerId().equals(mainFlower.getFlowerId()))
-                .toList();
-
-        // 후보가 없으면 전체 중에서 선택 (main과 다른 것만)
-        if (subCandidates.isEmpty()) {
-            subCandidates = candidateSubFlowers;
-        }
-
-        // 랜덤으로 1개 선택
-        if (!subCandidates.isEmpty()) {
-            Flowers selectedSub = subCandidates.get(new java.util.Random().nextInt(subCandidates.size()));
+        // Sub 꽃 저장
+        if (selectedSub != null) {
             CardFlowers subLink = CardFlowers.builder()
                     .id(new CardFlowersId(saved.getCardId(), selectedSub.getFlowerId()))
                     .flowerCards(saved)
