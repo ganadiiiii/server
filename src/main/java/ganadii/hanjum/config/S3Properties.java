@@ -17,7 +17,7 @@ public class S3Properties {
     // AWS Access Key ID (optional, IAM Role 사용 시 불필요)
     private String accessKeyId;
 
-     //AWS Secret Access Key (optional, IAM Role 사용 시 불필요)
+    // AWS Secret Access Key (optional, IAM Role 사용 시 불필요)
     private String secretAccessKey;
 
     // S3 base URL (CloudFront 또는 커스텀 도메인)
