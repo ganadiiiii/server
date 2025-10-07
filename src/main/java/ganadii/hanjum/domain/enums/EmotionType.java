@@ -6,7 +6,7 @@ import lombok.Getter;
 public enum EmotionType {
     EXCITEMENT("설렘"),
     LOVE("사랑"),
-    GRATITUDE("고마음"),
+    GRATITUDE("고마움"),
     COURAGE("용기"),
     ENCOURAGEMENT("격려"),
     EXPECTATION("기대"),
