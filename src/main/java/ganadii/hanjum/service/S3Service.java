@@ -142,6 +142,11 @@ public class S3Service {
         } catch (NoSuchKeyException e) {
             return false;
         } catch (S3Exception e) {
+            // 403 (Forbidden) or 404 (Not Found) → treat as "file does not exist"
+            if (e.statusCode() == 403 || e.statusCode() == 404) {
+                log.warn("S3 file not accessible or not found (status {}): key={}", e.statusCode(), key);
+                return false;
+            }
             log.error("S3 exists check failed: key={}, error={}", key, e.awsErrorDetails().errorMessage(), e);
             throw new RuntimeException("Failed to check file existence in S3", e);
         }
