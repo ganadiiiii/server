@@ -68,7 +68,9 @@ public class FlowerCardDtos {
             String wrappingLabel,
             Integer price,
             Long designAssetId,
-            FlowerSummary mainFlower
+            FlowerSummary mainFlower,
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            FlowerSummary subFlower
     ) {}
 
     public record CardPageResponse(
