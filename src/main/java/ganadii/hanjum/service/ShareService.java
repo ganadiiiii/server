@@ -4,6 +4,7 @@ import ganadii.hanjum.domain.FlowerCards;
 import ganadii.hanjum.domain.Shares;
 import ganadii.hanjum.domain.User;
 import ganadii.hanjum.repository.FlowerCardsRepository;
+import ganadii.hanjum.repository.FriendshipsRepository;
 import ganadii.hanjum.repository.SharesRepository;
 import ganadii.hanjum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class ShareService {
     private final SharesRepository sharesRepository;
     private final UserRepository userRepository;
     private final FlowerCardsRepository flowerCardsRepository;
+    private final FriendshipsRepository friendshipsRepository;
 
     @Transactional
     public Shares sendToSelf(UUID senderId, Long cardId, String idempotencyKey) {
@@ -26,6 +28,11 @@ public class ShareService {
                 .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
         FlowerCards card = flowerCardsRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
+
+        // 카드 소유권 검증
+        if (!card.getCreator().getUserId().equals(senderId)) {
+            throw new IllegalArgumentException("You can only send your own cards");
+        }
 
         // a card can be sent only once
         sharesRepository.findFirstByFlowerCards_CardId(cardId).ifPresent(s -> {
@@ -55,9 +62,19 @@ public class ShareService {
         FlowerCards card = flowerCardsRepository.findById(cardId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
 
-        // a card can be sent only once
-        sharesRepository.findFirstByFlowerCards_CardId(cardId).ifPresent(s -> {
-            throw new IllegalStateException("Card already sent");
+        // 카드 소유권 검증
+        if (!card.getCreator().getUserId().equals(senderId)) {
+            throw new IllegalArgumentException("You can only send your own cards");
+        }
+
+        // 친구 관계 검증
+        if (!friendshipsRepository.existsByUser_UserIdAndFriend_UserId(senderId, receiverId)) {
+            throw new IllegalArgumentException("You can only send cards to friends");
+        }
+
+        // 친구에게는 1번만 보낼 수 있음 (sender ≠ receiver인 Share 체크)
+        sharesRepository.findFriendShareByCardAndSender(cardId, senderId).ifPresent(s -> {
+            throw new IllegalStateException("Card already sent to a friend");
         });
 
         String finalTo = resolveName(toName, receiver.getDisplayName());
@@ -67,7 +84,8 @@ public class ShareService {
             throw new IllegalArgumentException("note must be <= 200 characters");
         }
 
-        Shares share = Shares.builder()
+        // 1. 친구에게 Share 생성
+        Shares friendShare = Shares.builder()
                 .flowerCards(card)
                 .sender(sender)
                 .receiver(receiver)
@@ -77,8 +95,21 @@ public class ShareService {
                 .isRead(false)
                 .idempotencyKey(trimToNull(idempotencyKey))
                 .build();
+        sharesRepository.save(friendShare);
 
-        return sharesRepository.save(share);
+        // 2. 나에게도 Share 생성 (내 Archive용)
+        Shares myArchiveShare = Shares.builder()
+                .flowerCards(card)
+                .sender(sender)
+                .receiver(sender)  // receiver = sender
+                .toName(finalTo)
+                .fromName(finalFrom)
+                .note(finalNote)
+                .isRead(true)  // 내가 만든 카드이므로 이미 본 것으로
+                .build();
+        sharesRepository.save(myArchiveShare);
+
+        return friendShare;
     }
 
     private static String resolveName(String candidate, String fallbackName) {
