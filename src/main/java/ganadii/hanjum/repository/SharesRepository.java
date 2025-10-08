@@ -25,4 +25,12 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     Optional<Shares> findByIdempotencyKeyAndSender_UserId(String idempotencyKey, UUID senderId);
     Optional<Shares> findBySender_UserIdAndReceiver_UserIdAndFlowerCards_CardId(UUID senderId, UUID receiverId, Long cardId);
     boolean existsByFlowerCards_CardId(Long cardId);
+
+    @Query("SELECT s FROM Shares s WHERE s.flowerCards.cardId = :cardId " +
+           "AND s.sender.userId = :senderId " +
+           "AND s.sender.userId <> s.receiver.userId")
+    Optional<Shares> findFriendShareByCardAndSender(
+            @Param("cardId") Long cardId,
+            @Param("senderId") UUID senderId
+    );
 }
