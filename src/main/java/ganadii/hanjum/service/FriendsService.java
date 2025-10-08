@@ -1,7 +1,8 @@
 package ganadii.hanjum.service;
 
-import ganadii.hanjum.domain.Friendships;
 import ganadii.hanjum.domain.User;
+import ganadii.hanjum.domain.enums.FriendRequestStatus;
+import ganadii.hanjum.repository.FriendRequestRepository;
 import ganadii.hanjum.repository.FriendshipsRepository;
 import ganadii.hanjum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,26 +23,28 @@ public class FriendsService {
 
     private final FriendshipsRepository friendshipsRepository;
     private final UserRepository userRepository;
+    private final FriendRequestRepository friendRequestRepository;
 
     @Transactional(readOnly = true)
     public Page<User> listFriends(UUID userId, int page, int size) {
-        List<Friendships> relations = friendshipsRepository.findByUser_UserId(userId);
-        List<UUID> friendIds = relations.stream().map(fr -> fr.getFriend().getUserId()).toList();
         Pageable pageable = PageRequest.of(page, size);
-        if (friendIds.isEmpty()) {
+
+        // Get friend IDs
+        List<UUID> friendIds = friendshipsRepository.findByUser_UserId(userId).stream()
+                .map(fr -> fr.getFriend().getUserId())
+                .toList();
+
+        // Get pending incoming friend request sender IDs
+        Set<UUID> pendingRequestSenderIds = friendRequestRepository.findByReceiver_UserIdAndStatus(userId, FriendRequestStatus.PENDING).stream()
+                .map(req -> req.getSender().getUserId())
+                .collect(Collectors.toSet());
+
+        if (friendIds.isEmpty() && pendingRequestSenderIds.isEmpty()) {
             return Page.empty(pageable);
         }
-        // Load all friend users and paginate in-memory (small-to-mid size lists)
-        List<User> all = new java.util.ArrayList<>();
-        userRepository.findAllById(friendIds).forEach(all::add);
-        all.sort(java.util.Comparator
-                .comparing(User::getLastName, String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(User::getFirstName, String.CASE_INSENSITIVE_ORDER));
-        int total = all.size();
-        int from = Math.min(page * size, total);
-        int to = Math.min(from + size, total);
-        List<User> slice = all.subList(from, to);
-        return new org.springframework.data.domain.PageImpl<>(slice, pageable, total);
+
+        // Query with DB-level sorting: pending request senders first, then regular friends
+        return userRepository.findFriendsAndRequestersSorted(friendIds, pendingRequestSenderIds, pageable);
     }
 
     @Transactional(readOnly = true)
@@ -50,13 +55,20 @@ public class FriendsService {
 
     @Transactional(readOnly = true)
     public Page<User> searchUsers(UUID userId, String q, int page, int size) {
-        List<Friendships> relations = friendshipsRepository.findByUser_UserId(userId);
-        List<UUID> friendIds = relations.stream().map(fr -> fr.getFriend().getUserId()).toList();
         Pageable pageable = PageRequest.of(page, size);
-        if (friendIds.isEmpty()) {
-            return userRepository.searchAll(userId, q, pageable);
-        }
-        return userRepository.searchAllOrderFriendFirst(userId, q, friendIds, pageable);
+
+        // Get friend IDs
+        Set<UUID> friendIds = friendshipsRepository.findByUser_UserId(userId).stream()
+                .map(fr -> fr.getFriend().getUserId())
+                .collect(Collectors.toSet());
+
+        // Get outgoing pending friend request receiver IDs
+        Set<UUID> pendingReceiverIds = friendRequestRepository.findBySender_UserIdAndStatus(userId, FriendRequestStatus.PENDING).stream()
+                .map(req -> req.getReceiver().getUserId())
+                .collect(Collectors.toSet());
+
+        // Query with DB-level sorting: friends first, then pending requests, then others
+        return userRepository.searchUsersWithCustomSort(userId, q, friendIds, pendingReceiverIds, pageable);
     }
 
     @Transactional
