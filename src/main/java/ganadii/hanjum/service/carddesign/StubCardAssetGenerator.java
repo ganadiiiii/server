@@ -19,7 +19,8 @@ public class StubCardAssetGenerator implements CardAssetGenerator {
         String checksum = CryptoUtils.sha1(key);
         String imageUrl = FALLBACK_BASE_URL + "/" + key + ".png";
         String storageKey = "cards/generated/" + key + ".png";
-        return new CardAssetDescriptor(imageUrl, storageKey, CardImageSource.GENERATED, checksum);
+        // Stub generator provides default background colors
+        return new CardAssetDescriptor(imageUrl, storageKey, CardImageSource.GENERATED, checksum, null);
     }
 
     private static String buildKey(CardDesignRequest request) {
