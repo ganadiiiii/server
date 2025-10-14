@@ -6,8 +6,6 @@ import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
 import ganadii.hanjum.util.CryptoUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Collectors;
-
 @Component
 public class StubCardAssetGenerator implements CardAssetGenerator {
 
