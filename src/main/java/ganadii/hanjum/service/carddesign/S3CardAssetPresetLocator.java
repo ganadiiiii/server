@@ -36,7 +36,8 @@ public class S3CardAssetPresetLocator implements CardAssetPresetLocator {
                     imageUrl,
                     s3Key,
                     CardImageSource.PRESET,
-                    null  // checksum은 선택사항
+                    null,  // checksum은 선택사항
+                    null   // backgroundColors는 preset에서 제공하지 않음
             ));
         }
 

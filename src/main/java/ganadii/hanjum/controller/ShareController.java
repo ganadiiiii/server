@@ -144,7 +144,8 @@ public class ShareController {
                         s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().name(),
                         s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel(),
                         s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().name(),
-                        s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().getLabel()
+                        s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().getLabel(),
+                        s.getFlowerCards().getDesignAsset() == null ? null : s.getFlowerCards().getDesignAsset().getBackgroundColors()
                 )
         );
     }

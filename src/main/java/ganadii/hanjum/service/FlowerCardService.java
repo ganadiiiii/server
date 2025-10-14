@@ -226,6 +226,7 @@ public class FlowerCardService {
                 wrappingType == null ? null : wrappingType.getLabel(),
                 card.getPrice(),
                 asset == null ? null : asset.getAssetId(),
+                asset == null ? null : asset.getBackgroundColors(),
                 mainFlowerSummary,
                 subFlowerSummary
         );

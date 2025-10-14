@@ -43,7 +43,8 @@ public class ShareDtos {
             String bouquetSize,
             String bouquetLabel,
             String wrappingType,
-            String wrappingLabel
+            String wrappingLabel,
+            List<String> backgroundColors
     ) {}
 
     public record ArchiveResponse(List<ShareResponse> items, int page, int size, long totalElements, int totalPages) {}

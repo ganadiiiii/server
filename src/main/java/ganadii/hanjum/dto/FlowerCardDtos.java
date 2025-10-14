@@ -97,6 +97,10 @@ public class FlowerCardDtos {
             @Schema(description = "디자인 에셋 ID")
             Long designAssetId,
 
+            @Schema(description = "배경 그라데이션 색상 (Hex color codes)", example = "[\"#FFE5E5\", \"#FFF0F0\"]")
+            @JsonInclude(JsonInclude.Include.NON_NULL)
+            List<String> backgroundColors,
+
             @Schema(description = "메인 꽃 정보")
             FlowerSummary mainFlower,
 

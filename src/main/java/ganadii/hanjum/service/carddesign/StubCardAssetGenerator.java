@@ -6,8 +6,6 @@ import ganadii.hanjum.service.carddesign.dto.CardDesignRequest;
 import ganadii.hanjum.util.CryptoUtils;
 import org.springframework.stereotype.Component;
 
-import java.util.stream.Collectors;
-
 @Component
 public class StubCardAssetGenerator implements CardAssetGenerator {
 
@@ -19,7 +17,8 @@ public class StubCardAssetGenerator implements CardAssetGenerator {
         String checksum = CryptoUtils.sha1(key);
         String imageUrl = FALLBACK_BASE_URL + "/" + key + ".png";
         String storageKey = "cards/generated/" + key + ".png";
-        return new CardAssetDescriptor(imageUrl, storageKey, CardImageSource.GENERATED, checksum);
+        // Stub generator provides default background colors
+        return new CardAssetDescriptor(imageUrl, storageKey, CardImageSource.GENERATED, checksum, null);
     }
 
     private static String buildKey(CardDesignRequest request) {
