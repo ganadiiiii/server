@@ -21,15 +21,18 @@ public class FlowerCardDtos {
             @Size(max = 500) String floriography,
 
             @Schema(description = "대상",
-                    example = "TEACHER | LOVER | SELF | FAMILY | FRIEND | COLLEAGUE | 스승 | 연인 | 본인 | 가족 | 친구 | 동료")
+                    example = "TEACHER | LOVER | SELF | FAMILY | FRIEND | COLLEAGUE |" +
+                            "스승 | 연인 | 본인 | 가족 | 친구 | 동료")
             @NotBlank String whoType,
 
             @Schema(description = "상황/시기",
-                    example = "BANQUET | CONFESSION | BIRTHDAY | ANNIVERSARY | MEMORIAL | OPENING | 연회 | 고백 | 생일 | 기념일 | 추모 | 개업")
+                    example = "BANQUET | CONFESSION | BIRTHDAY | ANNIVERSARY | MEMORIAL | OPENING |" +
+                            "연회 | 고백 | 생일 | 기념일 | 추모 | 개업")
             @NotBlank String whenType,
 
             @Schema(description = "감정 (1~9개 선택 가능)",
-                    example = "EXCITEMENT | LOVE | GRATITUDE | COURAGE | ENCOURAGEMENT | EXPECTATION | CELEBRATION | RESPECT | FRIENDSHIP | RESOLUTION | APOLOGY | MOURNING | 설렘 | 사랑 | 고마음 | 용기 | 격려 | 기대 | 축하 | 존경 | 우정 | 다짐 | 사과 | 애도")
+                    example = "[EXCITEMENT | LOVE | GRATITUDE | COURAGE | ENCOURAGEMENT | EXPECTATION | CELEBRATION | RESPECT | FRIENDSHIP | RESOLUTION | APOLOGY | MOURNING |" +
+                            "설렘 | 사랑 | 고마음 | 용기 | 격려 | 기대 | 축하 | 존경 | 우정 | 다짐 | 사과 | 애도]")
             @NotNull @Size(min = 1, max = 9) List<@NotBlank String> emotionTypes,
 
             @Schema(description = "꽃다발 크기",
@@ -37,7 +40,8 @@ public class FlowerCardDtos {
             String bouquetSize,
 
             @Schema(description = "포장 타입",
-                    example = "KRAFT_PAPER | COLOR_PAPER | CLEAR_VINYL | 크래프트지 | 컬러 종이 | 투명 비닐")
+                    example = "KRAFT_PAPER | COLOR_PAPER | CLEAR_VINYL |" +
+                            "크래프트지 | 컬러 종이 | 투명 비닐")
             String wrappingType,
 
             @Schema(description = "가격 (원)", example = "10000")
