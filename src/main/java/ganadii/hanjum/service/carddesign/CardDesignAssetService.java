@@ -1,6 +1,7 @@
 package ganadii.hanjum.service.carddesign;
 
 import ganadii.hanjum.domain.CardDesignAsset;
+import ganadii.hanjum.domain.Flowers;
 import ganadii.hanjum.domain.enums.BouquetSize;
 import ganadii.hanjum.repository.CardDesignAssetRepository;
 import ganadii.hanjum.service.carddesign.dto.CardAssetDescriptor;
@@ -10,6 +11,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +35,13 @@ public class CardDesignAssetService {
             throw new IllegalArgumentException("Emotion types must be provided");
         }
 
-        String flowerHash = FlowerCombinationHashGenerator.generateHash(request.mainFlower());
+        // Generate hash from main + sub flower combination
+        List<Flowers> flowerCombination = new ArrayList<>();
+        flowerCombination.add(request.mainFlower());
+        if (request.subFlower() != null) {
+            flowerCombination.add(request.subFlower());
+        }
+        String flowerHash = FlowerCombinationHashGenerator.generateHash(flowerCombination);
 
         // Use first emotion for cache key
         return cardDesignAssetRepository.findByFlowerCombinationHashAndWhoTypeAndWhenTypeAndEmotionTypeAndBouquetSize(
@@ -76,6 +84,7 @@ public class CardDesignAssetService {
                 .imageUrl(descriptor.imageUrl())
                 .storageKey(descriptor.storageKey())
                 .checksum(descriptor.checksum())
+                .backgroundColors(descriptor.backgroundColors())
                 .build();
         try {
             return cardDesignAssetRepository.save(asset);
