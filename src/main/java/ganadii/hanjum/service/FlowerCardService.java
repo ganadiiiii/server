@@ -13,6 +13,7 @@ import ganadii.hanjum.domain.enums.WhenType;
 import ganadii.hanjum.domain.enums.WhoType;
 import ganadii.hanjum.domain.enums.WrappingType;
 import ganadii.hanjum.dto.FlowerCardDtos;
+import ganadii.hanjum.dto.ShareDtos;
 import ganadii.hanjum.repository.CardFlowersRepository;
 import ganadii.hanjum.repository.FlowerCardsRepository;
 import ganadii.hanjum.repository.FlowersRepository;
@@ -157,12 +158,12 @@ public class FlowerCardService {
     }
 
     @Transactional(readOnly = true)
-    public FlowerCardDtos.CardResponse getMyCard(UUID userId, Long cardId) {
+    public ShareDtos.ShareResponse getMyCard(UUID userId, Long cardId) {
         FlowerCards card = flowerCardsRepository.findByCardIdAndCreator_UserId(cardId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        Flowers mainFlower = resolveMainFlower(cardId);
-        Flowers subFlower = resolveSubFlower(cardId);
-        return toResponse(card, mainFlower, subFlower, card.getDesignAsset());
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        return toShareResponse(card, user, card.getDesignAsset());
     }
 
     @Transactional
@@ -176,10 +177,35 @@ public class FlowerCardService {
         flowerCardsRepository.delete(card);
     }
 
+    private static ShareDtos.ShareResponse toShareResponse(FlowerCards card, User user, CardDesignAsset asset) {
+        List<String> emotionTypeNames = buildEmotionTypeNames(card.getEmotionTypes());
+        List<String> emotionTypeLabels = buildEmotionTypeLabels(card.getEmotionTypes());
+
+        ShareDtos.SimpleUser simpleUser = new ShareDtos.SimpleUser(
+                user.getUserId(),
+                user.getFirstName(),
+                user.getLastName()
+        );
+
+        ShareDtos.SimpleCard simpleCard = buildSimpleCard(card, emotionTypeNames, emotionTypeLabels, asset);
+
+        return new ShareDtos.ShareResponse(
+                null,  // shareId - not shared yet
+                card.getCardId(),
+                null,  // toName
+                null,  // fromName
+                null,  // note
+                null,  // isRead
+                null,  // sharedAt
+                simpleUser,  // sender
+                simpleUser,  // receiver - same as sender
+                simpleCard
+        );
+    }
+
     private static FlowerCardDtos.CardResponse toResponse(FlowerCards card, Flowers mainFlower, Flowers subFlower, CardDesignAsset asset) {
         WhoType whoType = card.getWhoType();
         WhenType whenType = card.getWhenType();
-        List<EmotionType> emotionTypes = card.getEmotionTypes();
         BouquetSize bouquetSize = card.getBouquetSize();
         WrappingType wrappingType = card.getWrappingType();
 
@@ -201,12 +227,8 @@ public class FlowerCardService {
                         subFlower.getImageUrl()
                 );
 
-        List<String> emotionTypeNames = (emotionTypes == null || emotionTypes.isEmpty())
-                ? null
-                : emotionTypes.stream().map(EmotionType::name).toList();
-        List<String> emotionTypeLabels = (emotionTypes == null || emotionTypes.isEmpty())
-                ? null
-                : emotionTypes.stream().map(EmotionType::getLabel).toList();
+        List<String> emotionTypeNames = buildEmotionTypeNames(card.getEmotionTypes());
+        List<String> emotionTypeLabels = buildEmotionTypeLabels(card.getEmotionTypes());
 
         return new FlowerCardDtos.CardResponse(
                 card.getCardId(),
@@ -292,37 +314,15 @@ public class FlowerCardService {
                 try {
                     return labelResolver.apply(trimmed);
                 } catch (IllegalArgumentException ignored) {
-                    // fall through to throw unified error below
+                    // fall through to throw a unified error below
                 }
             }
             throw new IllegalArgumentException("Unknown " + fieldName + ": " + raw);
         }
     }
 
-    private Flowers resolveMainFlower(Long cardId) {
-        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
-                .filter(cf -> cf.getFlowerType() == FlowerType.MAIN)
-                .map(CardFlowers::getFlowers)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private Flowers resolveSubFlower(Long cardId) {
-        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
-                .filter(cf -> cf.getFlowerType() == FlowerType.SUB)
-                .map(CardFlowers::getFlowers)
-                .findFirst()
-                .orElse(null);
-    }
-
     private Map<Long, Flowers> loadMainFlowers(List<FlowerCards> cards) {
-        if (cards == null || cards.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        List<Long> cardIds = cards.stream()
-                .map(FlowerCards::getCardId)
-                .filter(Objects::nonNull)
-                .toList();
+        List<Long> cardIds = extractCardIds(cards);
         if (cardIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -336,13 +336,7 @@ public class FlowerCardService {
     }
 
     private Map<Long, Flowers> loadSubFlowers(List<FlowerCards> cards) {
-        if (cards == null || cards.isEmpty()) {
-            return Collections.emptyMap();
-        }
-        List<Long> cardIds = cards.stream()
-                .map(FlowerCards::getCardId)
-                .filter(Objects::nonNull)
-                .toList();
+        List<Long> cardIds = extractCardIds(cards);
         if (cardIds.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -355,8 +349,18 @@ public class FlowerCardService {
                 ));
     }
 
+    private static List<Long> extractCardIds(List<FlowerCards> cards) {
+        if (cards == null || cards.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return cards.stream()
+                .map(FlowerCards::getCardId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     private static int normalizePage(int page) {
-        return page < 0 ? 0 : page;
+        return Math.max(page, 0);
     }
 
     private static int normalizeSize(int size) {
@@ -365,5 +369,41 @@ public class FlowerCardService {
             return fallback;
         }
         return Math.min(size, 50);
+    }
+
+    private static List<String> buildEmotionTypeNames(List<EmotionType> emotionTypes) {
+        return (emotionTypes == null || emotionTypes.isEmpty())
+                ? null
+                : emotionTypes.stream().map(EmotionType::name).toList();
+    }
+
+    private static List<String> buildEmotionTypeLabels(List<EmotionType> emotionTypes) {
+        return (emotionTypes == null || emotionTypes.isEmpty())
+                ? null
+                : emotionTypes.stream().map(EmotionType::getLabel).toList();
+    }
+
+    private static ShareDtos.SimpleCard buildSimpleCard(FlowerCards card, List<String> emotionTypeNames, List<String> emotionTypeLabels, CardDesignAsset asset) {
+        WhoType whoType = card.getWhoType();
+        WhenType whenType = card.getWhenType();
+        BouquetSize bouquetSize = card.getBouquetSize();
+        WrappingType wrappingType = card.getWrappingType();
+
+        return new ShareDtos.SimpleCard(
+                card.getCardId(),
+                card.getTitle(),
+                card.getImageUrl(),
+                whoType == null ? null : whoType.name(),
+                whoType == null ? null : whoType.getLabel(),
+                whenType == null ? null : whenType.name(),
+                whenType == null ? null : whenType.getLabel(),
+                emotionTypeNames,
+                emotionTypeLabels,
+                bouquetSize == null ? null : bouquetSize.name(),
+                bouquetSize == null ? null : bouquetSize.getLabel(),
+                wrappingType == null ? null : wrappingType.name(),
+                wrappingType == null ? null : wrappingType.getLabel(),
+                asset == null ? null : asset.getBackgroundColors()
+        );
     }
 }

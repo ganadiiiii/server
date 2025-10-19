@@ -1,6 +1,7 @@
 package ganadii.hanjum.controller;
 
 import ganadii.hanjum.dto.FlowerCardDtos;
+import ganadii.hanjum.dto.ShareDtos;
 import ganadii.hanjum.service.FlowerCardService;
 import ganadii.hanjum.security.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,12 +55,12 @@ public class FlowerCardController {
 
     @GetMapping("/{cardId}")
     @Operation(summary = "카드 상세", description = "선택한 꽃 카드의 상세 정보를 조회합니다.")
-    public ResponseEntity<FlowerCardDtos.CardResponse> myCard(
+    public ResponseEntity<ShareDtos.ShareResponse> myCard(
             @PathVariable Long cardId,
             @RequestHeader(name = "X-User-Id", required = false) String userHeader
     ) {
         UUID userId = resolveUserId(userHeader);
-        FlowerCardDtos.CardResponse response = flowerCardService.getMyCard(userId, cardId);
+        ShareDtos.ShareResponse response = flowerCardService.getMyCard(userId, cardId);
         return ResponseEntity.ok(response);
     }
 
