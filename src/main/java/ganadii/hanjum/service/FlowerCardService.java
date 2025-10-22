@@ -163,7 +163,9 @@ public class FlowerCardService {
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return toShareResponse(card, user, card.getDesignAsset());
+        Flowers mainFlower = loadMainFlowerByCardId(cardId);
+        Flowers subFlower = loadSubFlowerByCardId(cardId);
+        return toShareResponse(card, user, mainFlower, subFlower, card.getDesignAsset());
     }
 
     @Transactional
@@ -177,7 +179,7 @@ public class FlowerCardService {
         flowerCardsRepository.delete(card);
     }
 
-    private static ShareDtos.ShareResponse toShareResponse(FlowerCards card, User user, CardDesignAsset asset) {
+    private static ShareDtos.ShareResponse toShareResponse(FlowerCards card, User user, Flowers mainFlower, Flowers subFlower, CardDesignAsset asset) {
         List<String> emotionTypeNames = buildEmotionTypeNames(card.getEmotionTypes());
         List<String> emotionTypeLabels = buildEmotionTypeLabels(card.getEmotionTypes());
 
@@ -187,7 +189,7 @@ public class FlowerCardService {
                 user.getLastName()
         );
 
-        ShareDtos.SimpleCard simpleCard = buildSimpleCard(card, emotionTypeNames, emotionTypeLabels, asset);
+        ShareDtos.SimpleCard simpleCard = buildDetailedCard(card, emotionTypeNames, emotionTypeLabels, mainFlower, subFlower, asset);
 
         return new ShareDtos.ShareResponse(
                 null,  // shareId - not shared yet
@@ -383,11 +385,27 @@ public class FlowerCardService {
                 : emotionTypes.stream().map(EmotionType::getLabel).toList();
     }
 
-    private static ShareDtos.SimpleCard buildSimpleCard(FlowerCards card, List<String> emotionTypeNames, List<String> emotionTypeLabels, CardDesignAsset asset) {
+    private static ShareDtos.SimpleCard buildDetailedCard(FlowerCards card, List<String> emotionTypeNames, List<String> emotionTypeLabels, Flowers mainFlower, Flowers subFlower, CardDesignAsset asset) {
         WhoType whoType = card.getWhoType();
         WhenType whenType = card.getWhenType();
         BouquetSize bouquetSize = card.getBouquetSize();
         WrappingType wrappingType = card.getWrappingType();
+
+        ShareDtos.FlowerSummary mainFlowerSummary = mainFlower == null ? null
+                : new ShareDtos.FlowerSummary(
+                        mainFlower.getFlowerId(),
+                        mainFlower.getKoreanName(),
+                        mainFlower.getEnglishName(),
+                        mainFlower.getImageUrl()
+                );
+
+        ShareDtos.FlowerSummary subFlowerSummary = subFlower == null ? null
+                : new ShareDtos.FlowerSummary(
+                        subFlower.getFlowerId(),
+                        subFlower.getKoreanName(),
+                        subFlower.getEnglishName(),
+                        subFlower.getImageUrl()
+                );
 
         return new ShareDtos.SimpleCard(
                 card.getCardId(),
@@ -403,7 +421,29 @@ public class FlowerCardService {
                 bouquetSize == null ? null : bouquetSize.getLabel(),
                 wrappingType == null ? null : wrappingType.name(),
                 wrappingType == null ? null : wrappingType.getLabel(),
-                asset == null ? null : asset.getBackgroundColors()
+                asset == null ? null : asset.getBackgroundColors(),
+                card.getImageSource() == null ? null : card.getImageSource().name(),
+                card.getFloriography(),
+                card.getPrice(),
+                asset == null ? null : asset.getAssetId(),
+                mainFlowerSummary,
+                subFlowerSummary
         );
+    }
+
+    private Flowers loadMainFlowerByCardId(Long cardId) {
+        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
+                .filter(cf -> cf.getFlowerType() == FlowerType.MAIN)
+                .map(CardFlowers::getFlowers)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Flowers loadSubFlowerByCardId(Long cardId) {
+        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
+                .filter(cf -> cf.getFlowerType() == FlowerType.SUB)
+                .map(CardFlowers::getFlowers)
+                .findFirst()
+                .orElse(null);
     }
 }

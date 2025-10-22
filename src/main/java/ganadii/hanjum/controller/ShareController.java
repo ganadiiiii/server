@@ -1,6 +1,10 @@
 package ganadii.hanjum.controller;
 
+import ganadii.hanjum.domain.CardFlowers;
+import ganadii.hanjum.domain.Flowers;
 import ganadii.hanjum.domain.Shares;
+import ganadii.hanjum.domain.enums.EmotionType;
+import ganadii.hanjum.domain.enums.FlowerType;
 import ganadii.hanjum.domain.enums.FriendRequestStatus;
 import ganadii.hanjum.dto.ShareDtos;
 import ganadii.hanjum.repository.FriendRequestRepository;
@@ -36,6 +40,7 @@ public class ShareController {
     private final ShareService shareService;
     private final SharesRepository sharesRepository;
     private final FriendRequestRepository friendRequestRepository;
+    private final ganadii.hanjum.repository.CardFlowersRepository cardFlowersRepository;
 
     @PostMapping("/cards/{cardId}/send/self")
     @Operation(summary = "나에게 보내기", description = "내 카드 아카이브에 저장합니다.")
@@ -114,16 +119,33 @@ public class ShareController {
     }
 
     private ShareDtos.ShareResponse toResponse(Shares s) {
-        List<String> emotionTypeNames = (s.getFlowerCards().getEmotionTypes() == null || s.getFlowerCards().getEmotionTypes().isEmpty())
-                ? null
-                : s.getFlowerCards().getEmotionTypes().stream().map(Enum::name).toList();
-        List<String> emotionTypeLabels = (s.getFlowerCards().getEmotionTypes() == null || s.getFlowerCards().getEmotionTypes().isEmpty())
-                ? null
-                : s.getFlowerCards().getEmotionTypes().stream().map(ganadii.hanjum.domain.enums.EmotionType::getLabel).toList();
+        Long cardId = s.getFlowerCards().getCardId();
+
+        Flowers mainFlower = loadMainFlower(cardId);
+        Flowers subFlower = loadSubFlower(cardId);
+
+        List<String> emotionTypeNames = buildEmotionTypeNames(s.getFlowerCards().getEmotionTypes());
+        List<String> emotionTypeLabels = buildEmotionTypeLabels(s.getFlowerCards().getEmotionTypes());
+
+        ShareDtos.FlowerSummary mainFlowerSummary = mainFlower == null ? null
+                : new ShareDtos.FlowerSummary(
+                        mainFlower.getFlowerId(),
+                        mainFlower.getKoreanName(),
+                        mainFlower.getEnglishName(),
+                        mainFlower.getImageUrl()
+                );
+
+        ShareDtos.FlowerSummary subFlowerSummary = subFlower == null ? null
+                : new ShareDtos.FlowerSummary(
+                        subFlower.getFlowerId(),
+                        subFlower.getKoreanName(),
+                        subFlower.getEnglishName(),
+                        subFlower.getImageUrl()
+                );
 
         return new ShareDtos.ShareResponse(
                 s.getShareId(),
-                s.getFlowerCards().getCardId(),
+                cardId,
                 s.getToName(),
                 s.getFromName(),
                 s.getNote(),
@@ -132,7 +154,7 @@ public class ShareController {
                 new ShareDtos.SimpleUser(s.getSender().getUserId(), s.getSender().getFirstName(), s.getSender().getLastName()),
                 new ShareDtos.SimpleUser(s.getReceiver().getUserId(), s.getReceiver().getFirstName(), s.getReceiver().getLastName()),
                 new ShareDtos.SimpleCard(
-                        s.getFlowerCards().getCardId(),
+                        cardId,
                         s.getFlowerCards().getTitle(),
                         s.getFlowerCards().getImageUrl(),
                         s.getFlowerCards().getWhoType() == null ? null : s.getFlowerCards().getWhoType().name(),
@@ -145,7 +167,13 @@ public class ShareController {
                         s.getFlowerCards().getBouquetSize() == null ? null : s.getFlowerCards().getBouquetSize().getLabel(),
                         s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().name(),
                         s.getFlowerCards().getWrappingType() == null ? null : s.getFlowerCards().getWrappingType().getLabel(),
-                        s.getFlowerCards().getDesignAsset() == null ? null : s.getFlowerCards().getDesignAsset().getBackgroundColors()
+                        s.getFlowerCards().getDesignAsset() == null ? null : s.getFlowerCards().getDesignAsset().getBackgroundColors(),
+                        s.getFlowerCards().getImageSource() == null ? null : s.getFlowerCards().getImageSource().name(),
+                        s.getFlowerCards().getFloriography(),
+                        s.getFlowerCards().getPrice(),
+                        s.getFlowerCards().getDesignAsset() == null ? null : s.getFlowerCards().getDesignAsset().getAssetId(),
+                        mainFlowerSummary,
+                        subFlowerSummary
                 )
         );
     }
@@ -156,5 +184,33 @@ public class ShareController {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Flowers loadMainFlower(Long cardId) {
+        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
+                .filter(cf -> cf.getFlowerType() == FlowerType.MAIN)
+                .map(CardFlowers::getFlowers)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private Flowers loadSubFlower(Long cardId) {
+        return cardFlowersRepository.findByFlowerCards_CardId(cardId).stream()
+                .filter(cf -> cf.getFlowerType() == FlowerType.SUB)
+                .map(CardFlowers::getFlowers)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static List<String> buildEmotionTypeNames(List<EmotionType> emotionTypes) {
+        return (emotionTypes == null || emotionTypes.isEmpty())
+                ? null
+                : emotionTypes.stream().map(EmotionType::name).toList();
+    }
+
+    private static List<String> buildEmotionTypeLabels(List<EmotionType> emotionTypes) {
+        return (emotionTypes == null || emotionTypes.isEmpty())
+                ? null
+                : emotionTypes.stream().map(EmotionType::getLabel).toList();
     }
 }

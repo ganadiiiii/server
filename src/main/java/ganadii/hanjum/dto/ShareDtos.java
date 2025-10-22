@@ -30,6 +30,13 @@ public class ShareDtos {
 
     public record SimpleUser(UUID userId, String firstName, String lastName) {}
 
+    public record FlowerSummary(
+            Long flowerId,
+            String koreanName,
+            String englishName,
+            String imageUrl
+    ) {}
+
     public record SimpleCard(
             Long cardId,
             String title,
@@ -44,7 +51,13 @@ public class ShareDtos {
             String bouquetLabel,
             String wrappingType,
             String wrappingLabel,
-            List<String> backgroundColors
+            List<String> backgroundColors,
+            String imageSource,
+            String floriography,
+            Integer price,
+            Long designAssetId,
+            FlowerSummary mainFlower,
+            FlowerSummary subFlower
     ) {}
 
     public record ArchiveResponse(List<ShareResponse> items, int page, int size, long totalElements, int totalPages) {}
