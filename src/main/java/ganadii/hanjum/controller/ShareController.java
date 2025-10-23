@@ -89,13 +89,16 @@ public class ShareController {
     }
 
     @GetMapping("/archive")
-    @Operation(summary = "내 아카이브", description = "받은 카드 아카이브를 페이지로 조회합니다.")
+    @Operation(summary = "내 아카이브", description = "받은 카드 아카이브를 페이지로 조회합니다. userId 파라미터로 친구 아카이브도 조회 가능합니다. (TEMPORARY)")
     public ResponseEntity<ShareDtos.ArchiveResponse> archive(@RequestParam(defaultValue = "0") int page,
                                                              @RequestParam(defaultValue = "15") int size,
+                                                             @RequestParam(required = false) String userId,
                                                              @RequestHeader(name = "X-User-Id", required = false) String userHeader) {
-        UUID userId = resolveUserId(userHeader);
+        UUID targetUserId = (userId != null && !userId.isBlank())
+                ? UUID.fromString(userId.trim())
+                : resolveUserId(userHeader);
         Page<Shares> p = sharesRepository.findByReceiver_UserId(
-                userId,
+                targetUserId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "sharedAt"))
         );
         List<ShareDtos.ShareResponse> items = p.getContent().stream().map(this::toResponse).toList();
