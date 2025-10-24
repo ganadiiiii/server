@@ -279,8 +279,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
     }
 
     /**
-     * 프롬프트 생성 (트리플 이미지 전략)
-     */
+     * 프롬프트 생성 (트리플 이미지 전략) - legacy
     private String buildPrompt(CardDesignRequest request) {
         // 꽃 정보
         Flowers mainFlower = request.mainFlower();
@@ -301,41 +300,44 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
         // 프롬프트 생성
         return String.format(
-            "You are provided with THREE reference images:\n" +
-            "1. Image 1: Individual %s flower asset (transparent background)\n" +
-            "2. Image 2: Individual %s flower asset (transparent background)\n" +
-            "3. Image 3: Complete bouquet style reference showing composition and wrapping\n" +
-            "\n" +
-            "Create a beautiful flower bouquet with these specifications:\n" +
-            "- Main Flower: %s (must be prominent, 50%% of bouquet)\n" +
-            "- Supporting Flower: %s (supporting role, 30%% of bouquet)\n" +
-            "- Additional Flowers: Add 2-3 complementary flowers (20%% of bouquet) for variety\n" +
-            "- Recipient: %s\n" +
-            "- Occasion: %s\n" +
-            "- Emotion/Mood: %s\n" +
-            "- Size: %s\n" +
-            "- Wrapping: %s\n" +
-            "\n" +
-            "CRITICAL REQUIREMENTS:\n" +
-            "1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (50%% prominence)\n" +
-            "2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (30%%)\n" +
-            "3. VARIETY: Add 2-3 other complementary flowers for depth (20%%)\n" +
-            "4. STYLE: Match Image 3's exact visual style:\n" +
-            "   - Photography style and lighting\n" +
-            "   - Background treatment (color, gradient, texture)\n" +
-            "   - Bouquet arrangement and wrapping style\n" +
-            "   - Overall mood and atmosphere\n" +
-            "   - Image quality and resolution\n" +
-            "\n" +
-            "Additional requirements:\n" +
-            "- High quality, photorealistic style\n" +
-            "- Professional florist arrangement\n" +
-            "- Centered composition\n" +
-            "- Natural lighting\n" +
-            "- Fresh and vibrant colors\n" +
-            "- Use %s wrapping paper as specified in Image 3\n" +
-            "\n" +
-            "The bouquet should convey %s feelings and be perfect for giving to %s on %s.",
+            """
+            You are provided with THREE reference images:
+            1. Image 1: Individual {mainFlowerName} flower asset (transparent background)
+            2. Image 2: Individual {subFlowerName} flower asset (transparent background)
+            3. Image 3: Complete bouquet style reference showing composition and arrangement
+
+            Create a **beautiful, photorealistic flower bouquet** with these specifications:
+            - Main Flower: {mainFlowerName} (must be prominent, about 50% of the bouquet)
+            - Supporting Flower: {subFlowerName} (supporting role, about 30% of the bouquet)
+            - Additional Flowers: Add 2–3 complementary flowers (make up about 20% of the bouquet) for visual variety
+            - Recipient: {who}
+            - Occasion: {when}
+            - Emotion/Mood: {emotion}
+            - Size: {size}
+            
+            **CRITICAL REQUIREMENTS:**
+            1. COMPOSITION: Use Image 1 ({mainFlowerName}) as the centerpiece flower (approx. 50% prominence).
+            2. SUPPORTING: Integrate Image 2 ({subFlowerName}) as supporting elements (approx. 30%).
+            3. VARIETY: Add 2–3 other complementary flowers (approx. 20%).
+            4. STYLE: Match Image 3’s exact visual style —
+            - Photography style and lighting
+            - Background treatment (color, gradient, texture)
+            - Bouquet arrangement and overall mood
+            - Image quality and resolution
+            
+            **BACKGROUND TRANSPARENCY SPECIFICATION:**
+            - The background must be fully transparent around the bouquet.
+            - Only the bouquet (flowers and stems) appear; there should be **no visible wrapping**, no visible environment or container.
+            - The final output should ideally be a high-resolution PNG with an alpha channel (transparent background).
+            
+            **Additional requirements:**
+            - High quality, photorealistic style
+            - Professional florist arrangement
+            - Centered composition of the bouquet in the image
+            - Natural lighting, fresh and vibrant colors
+            
+            The bouquet should convey {emotion} feelings and be perfect for giving to {who} on {when}.
+            """,
             mainFlowerName,
             subFlowerName,
             mainFlowerName,
@@ -351,6 +353,80 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             emotion.toLowerCase(),
             who.toLowerCase(),
             when.toLowerCase()
+        );
+    }
+     */
+
+    // 프롬프트 생성 (트리플 이미지 전략, 포장지 제거 및 투명 배경 지정)
+    private String buildPrompt(CardDesignRequest request) {
+        Flowers mainFlower = request.mainFlower();
+        Flowers subFlower = request.subFlower();
+
+        String mainFlowerName = mainFlower.getEnglishName() != null
+                ? mainFlower.getEnglishName()
+                : mainFlower.getKoreanName();
+
+        String subFlowerName = subFlower != null && subFlower.getEnglishName() != null
+                ? subFlower.getEnglishName()
+                : (subFlower != null ? subFlower.getKoreanName() : "complementary flowers");
+
+        String who = translateWhoType(request.whoType());
+        String when = translateWhenType(request.whenType());
+        String emotion = translateEmotionTypes(request.emotionTypes());
+        String size = translateBouquetSize(request.bouquetSize());
+
+        return String.format(
+                """
+                You are provided with THREE reference images:
+                1. Image 1: Individual %s flower asset (transparent background)
+                2. Image 2: Individual %s flower asset (transparent background)
+                3. Image 3: Complete bouquet style reference showing composition and arrangement
+        
+                Create a beautiful, photorealistic flower bouquet with these specifications:
+                - Main Flower: %s (must be prominent, about 50%% of the bouquet)
+                - Supporting Flower: %s (supporting role, about 30%% of the bouquet)
+                - Additional Flowers: Add 2–3 complementary flowers (make up about 20%% of the bouquet) for visual variety
+                - Recipient: %s
+                - Occasion: %s
+                - Emotion/Mood: %s
+                - Size: %s
+        
+                CRITICAL REQUIREMENTS:
+                1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (approx. 50%% prominence)
+                2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (approx. 30%%)
+                3. VARIETY: Add 2–3 other complementary flowers (approx. 20%%)
+                4. STYLE: Match Image 3’s exact visual style:
+                   - Photography style and lighting
+                   - Background treatment (color, gradient, texture)
+                   - Bouquet arrangement and overall mood
+                   - Image quality and resolution
+        
+                BACKGROUND TRANSPARENCY SPECIFICATION:
+                - The background must be fully transparent around the bouquet.
+                - Only the bouquet (flowers and stems) appear; there should be no visible wrapping, vase, or environment.
+                - The final output should ideally be a high-resolution PNG with an alpha channel (transparent background).
+        
+                Additional requirements:
+                - High quality, photorealistic style
+                - Professional florist arrangement
+                - Centered composition of the bouquet in the image
+                - Natural lighting, fresh and vibrant colors
+        
+                The bouquet should convey %s feelings and be perfect for giving to %s on %s.
+                """,
+                mainFlowerName,  // Image 1
+                subFlowerName,   // Image 2
+                mainFlowerName,  // Main Flower description
+                subFlowerName,   // Supporting Flower description
+                who,
+                when,
+                emotion,
+                size,
+                mainFlowerName,  // For COMPOSITION
+                subFlowerName,   // For SUPPORTING
+                emotion.toLowerCase(),
+                who.toLowerCase(),
+                when.toLowerCase()
         );
     }
 
