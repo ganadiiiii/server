@@ -46,6 +46,6 @@ public class S3CardAssetPresetLocator implements CardAssetPresetLocator {
     }
 
     private String normalize(Object value) {
-        return value == null ? "any" : value.toString().toLowerCase();
+        return value == null ? "any" : value.toString();
     }
 }
