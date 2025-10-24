@@ -172,9 +172,7 @@ public class FlowerCardService {
     public void deleteMyCard(UUID userId, Long cardId) {
         FlowerCards card = flowerCardsRepository.findByCardIdAndCreator_UserId(cardId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        if (sharesRepository.existsByFlowerCards_CardId(cardId)) {
-            throw new IllegalStateException("Shared cards cannot be deleted");
-        }
+        sharesRepository.deleteByFlowerCards_CardId(cardId);
         cardFlowersRepository.deleteByFlowerCards_CardId(cardId);
         flowerCardsRepository.delete(card);
     }
