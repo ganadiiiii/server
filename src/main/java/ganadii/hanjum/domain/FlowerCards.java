@@ -52,7 +52,6 @@ public class FlowerCards {
     @Column(name = "floriography")
     private String floriography;
 
-
     @Enumerated(EnumType.STRING)
     @Column(name = "who_type")
     private WhoType whoType;

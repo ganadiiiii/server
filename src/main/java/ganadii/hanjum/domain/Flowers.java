@@ -31,6 +31,9 @@ public class Flowers {
     @Column(name = "image_url")
     private String imageUrl;
 
+    @Column(name = "default_floriography", length = 500)
+    private String defaultFloriography;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "details", columnDefinition = "jsonb")
     private List<MeaningDetail> details;

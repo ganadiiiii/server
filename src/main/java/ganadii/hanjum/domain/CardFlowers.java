@@ -21,7 +21,7 @@ public class CardFlowers {
     @JoinColumn(name = "card_id", nullable = false)
     private FlowerCards flowerCards;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch= FetchType.LAZY, optional = false)
     @MapsId("flowerId")
     @JoinColumn(name = "flower_id", nullable = false)
     private Flowers flowers;

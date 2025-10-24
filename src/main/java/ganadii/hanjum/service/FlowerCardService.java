@@ -104,7 +104,7 @@ public class FlowerCardService {
                 .imageUrl(designAsset.getImageUrl())
                 .imageSource(designAsset.getSource())
                 .designAsset(designAsset)
-                .floriography(trimToNull(request.floriography()))
+                .floriography(mainFlower.getDefaultFloriography())
                 .whoType(whoType)
                 .whenType(whenType)
                 .emotionTypes(emotionTypes)
