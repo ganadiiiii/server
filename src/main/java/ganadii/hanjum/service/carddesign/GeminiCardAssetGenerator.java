@@ -114,13 +114,11 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     /**
      * 꽃다발 스타일 참고 이미지를 Base64로 로드
-     * 네이밍 규칙: {flowerId}-{size}.png
+     * 네이밍 규칙: {flowerId}-{size}.png (예: 1-L.png, 7-M.png)
      */
     private String loadBouquetStyleReferenceAsBase64(CardDesignRequest request) {
         Long flowerId = request.mainFlower().getFlowerId();
-        String size = request.bouquetSize() == null
-            ? "medium"
-            : request.bouquetSize().name().toLowerCase();
+        String size = convertBouquetSizeToS3Format(request.bouquetSize());
 
         String referenceKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, size);
 
@@ -141,9 +139,9 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         }
 
         // Fallback 1: Try same flower with medium size
-        if (!"medium".equals(size)) {
+        if (!"M".equals(size)) {
             try {
-                String fallbackKey = String.format("%s/%d-medium.png", BOUQUET_REFERENCE_PATH, flowerId);
+                String fallbackKey = String.format("%s/%d-M.png", BOUQUET_REFERENCE_PATH, flowerId);
                 if (s3Service.exists(fallbackKey)) {
                     byte[] imageBytes = s3Service.download(fallbackKey);
                     log.info("Using fallback bouquet reference (medium size): {}", fallbackKey);
@@ -156,7 +154,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
         // Fallback 2: Try any size for this flower
         try {
-            for (String fallbackSize : List.of("medium", "small", "large")) {
+            for (String fallbackSize : List.of("M", "S", "L")) {
                 String fallbackKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, fallbackSize);
                 if (s3Service.exists(fallbackKey)) {
                     byte[] imageBytes = s3Service.download(fallbackKey);
@@ -525,6 +523,23 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private String normalize(Object value) {
         return value == null ? "any" : value.toString().toLowerCase();
+    }
+
+    /**
+     * BouquetSize enum을 S3 파일명 형식으로 변환
+     * SMALL -> "S", MEDIUM -> "M", LARGE -> "L"
+     */
+    private String convertBouquetSizeToS3Format(Object bouquetSize) {
+        if (bouquetSize == null) {
+            return "M";  // Default to Medium
+        }
+        String name = bouquetSize.toString();
+        return switch (name) {
+            case "SMALL" -> "S";
+            case "MEDIUM" -> "M";
+            case "LARGE" -> "L";
+            default -> "M";
+        };
     }
 
 
