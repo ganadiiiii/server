@@ -44,4 +44,14 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     @Modifying
     @Query("UPDATE Shares s SET s.isRead = true WHERE s.shareId = :shareId")
     void markAsRead(@Param("shareId") Long shareId);
+
+    @Query("SELECT s FROM Shares s " +
+           "WHERE s.flowerCards.cardId = :cardId " +
+           "AND EXISTS (SELECT 1 FROM Friendships f " +
+           "            WHERE f.user.userId = :userId " +
+           "            AND f.friend.userId = s.receiver.userId)")
+    Optional<Shares> findByCardIdAndFriendReceiver(
+            @Param("cardId") Long cardId,
+            @Param("userId") UUID userId
+    );
 }

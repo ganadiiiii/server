@@ -185,6 +185,17 @@ public class FlowerCardService {
             return toReceivedShareResponse(share, card, mainFlower, subFlower, card.getDesignAsset());
         }
 
+        // If not found, check if it's a card my friend received
+        var friendReceivedShare = sharesRepository.findByCardIdAndFriendReceiver(cardId, userId);
+        if (friendReceivedShare.isPresent()) {
+            var share = friendReceivedShare.get();
+            // Don't mark as read for friend's cards
+            FlowerCards card = share.getFlowerCards();
+            Flowers mainFlower = loadMainFlowerByCardId(cardId);
+            Flowers subFlower = loadSubFlowerByCardId(cardId);
+            return toReceivedShareResponse(share, card, mainFlower, subFlower, card.getDesignAsset());
+        }
+
         throw new IllegalArgumentException("Card not found");
     }
 
