@@ -107,11 +107,12 @@ public class ShareController {
     }
 
     @GetMapping("/archive/meta")
-    @Operation(summary = "아카이브 메타", description = "친구 요청이 있는지 여부를 확인합니다.")
+    @Operation(summary = "아카이브 메타", description = "친구 요청 여부와 읽지 않은 카드 개수를 확인합니다.")
     public ResponseEntity<ShareDtos.ArchiveMetaResponse> archiveMeta(@RequestHeader(name = "X-User-Id", required = false) String userHeader) {
         UUID userId = resolveUserId(userHeader);
         boolean exists = friendRequestRepository.existsByReceiver_UserIdAndStatus(userId, FriendRequestStatus.PENDING);
-        return ResponseEntity.ok(new ShareDtos.ArchiveMetaResponse(exists));
+        long unreadCount = sharesRepository.countUnreadFromFriends(userId);
+        return ResponseEntity.ok(new ShareDtos.ArchiveMetaResponse(exists, (int) unreadCount));
     }
 
     private UUID resolveUserId(String userHeader) {

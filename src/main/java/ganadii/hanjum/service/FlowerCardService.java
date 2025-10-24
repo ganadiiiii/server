@@ -157,15 +157,35 @@ public class FlowerCardService {
         );
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ShareDtos.ShareResponse getMyCard(UUID userId, Long cardId) {
-        FlowerCards card = flowerCardsRepository.findByCardIdAndCreator_UserId(cardId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("Card not found"));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        Flowers mainFlower = loadMainFlowerByCardId(cardId);
-        Flowers subFlower = loadSubFlowerByCardId(cardId);
-        return toShareResponse(card, user, mainFlower, subFlower, card.getDesignAsset());
+        // First try to find card I created
+        var createdCard = flowerCardsRepository.findByCardIdAndCreator_UserId(cardId, userId);
+        if (createdCard.isPresent()) {
+            FlowerCards card = createdCard.get();
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            Flowers mainFlower = loadMainFlowerByCardId(cardId);
+            Flowers subFlower = loadSubFlowerByCardId(cardId);
+            return toShareResponse(card, user, mainFlower, subFlower, card.getDesignAsset());
+        }
+
+        // If not found, check if it's a card I received
+        var receivedShare = sharesRepository.findByFlowerCards_CardIdAndReceiver_UserId(cardId, userId);
+        if (receivedShare.isPresent()) {
+            var share = receivedShare.get();
+            // Mark as read
+            if (share.getIsRead() == null || !share.getIsRead()) {
+                sharesRepository.markAsRead(share.getShareId());
+            }
+            // Load card and flower details
+            FlowerCards card = share.getFlowerCards();
+            Flowers mainFlower = loadMainFlowerByCardId(cardId);
+            Flowers subFlower = loadSubFlowerByCardId(cardId);
+            return toReceivedShareResponse(share, card, mainFlower, subFlower, card.getDesignAsset());
+        }
+
+        throw new IllegalArgumentException("Card not found");
     }
 
     @Transactional
@@ -199,6 +219,38 @@ public class FlowerCardService {
                 null,  // sharedAt
                 simpleUser,  // sender
                 simpleUser,  // receiver - same as sender
+                simpleCard
+        );
+    }
+
+    private static ShareDtos.ShareResponse toReceivedShareResponse(ganadii.hanjum.domain.Shares share, FlowerCards card, Flowers mainFlower, Flowers subFlower, CardDesignAsset asset) {
+        List<String> emotionTypeNames = buildEmotionTypeNames(card.getEmotionTypes());
+        List<String> emotionTypeLabels = buildEmotionTypeLabels(card.getEmotionTypes());
+
+        ShareDtos.SimpleUser sender = new ShareDtos.SimpleUser(
+                share.getSender().getUserId(),
+                share.getSender().getFirstName(),
+                share.getSender().getLastName()
+        );
+
+        ShareDtos.SimpleUser receiver = new ShareDtos.SimpleUser(
+                share.getReceiver().getUserId(),
+                share.getReceiver().getFirstName(),
+                share.getReceiver().getLastName()
+        );
+
+        ShareDtos.SimpleCard simpleCard = buildDetailedCard(card, emotionTypeNames, emotionTypeLabels, mainFlower, subFlower, asset);
+
+        return new ShareDtos.ShareResponse(
+                share.getShareId(),
+                card.getCardId(),
+                share.getToName(),
+                share.getFromName(),
+                share.getNote(),
+                true,  // isRead - we just marked it as read
+                share.getSharedAt(),
+                sender,
+                receiver,
                 simpleCard
         );
     }

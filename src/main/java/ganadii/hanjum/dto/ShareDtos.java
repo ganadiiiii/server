@@ -129,6 +129,8 @@ public class ShareDtos {
 
     public record ArchiveMetaResponse(
             @Schema(description = "대기 중인 친구 요청 존재 여부")
-            boolean hasPendingFriendRequests
+            boolean hasPendingFriendRequests,
+            @Schema(description = "읽지 않은 친구 카드 개수")
+            int unreadCardCount
     ) {}
 }

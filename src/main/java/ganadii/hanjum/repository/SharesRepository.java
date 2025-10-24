@@ -4,6 +4,7 @@ import ganadii.hanjum.domain.Shares;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -27,6 +28,9 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     boolean existsByFlowerCards_CardId(Long cardId);
     void deleteByFlowerCards_CardId(Long cardId);
 
+    @Query("SELECT COUNT(s) FROM Shares s WHERE s.receiver.userId = :userId AND s.isRead = false AND s.sender.userId <> :userId")
+    long countUnreadFromFriends(@Param("userId") UUID userId);
+
     @Query("SELECT s FROM Shares s WHERE s.flowerCards.cardId = :cardId " +
            "AND s.sender.userId = :senderId " +
            "AND s.sender.userId <> s.receiver.userId")
@@ -34,4 +38,10 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
             @Param("cardId") Long cardId,
             @Param("senderId") UUID senderId
     );
+
+    Optional<Shares> findByFlowerCards_CardIdAndReceiver_UserId(Long cardId, UUID receiverId);
+
+    @Modifying
+    @Query("UPDATE Shares s SET s.isRead = true WHERE s.shareId = :shareId")
+    void markAsRead(@Param("shareId") Long shareId);
 }
