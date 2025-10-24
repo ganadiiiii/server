@@ -31,6 +31,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private final S3Service s3Service;
     private final RestTemplate restTemplate;
+    private final ganadii.hanjum.service.BedrockBackgroundRemovalService bedrockBackgroundRemovalService;
 
     // S3 경로 constants
     private static final String FLOWER_ASSETS_PATH = "main_flowers";
@@ -51,24 +52,29 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String s3Key = buildS3Key(request);
 
             // 2. Gemini API 호출
-            byte[] imageBytes = callGeminiApi(request);
+            byte[] geminiImageBytes = callGeminiApi(request);
+            log.info("Gemini image generated, size: {} bytes", geminiImageBytes.length);
 
-            // 3. S3 업로드
-            String imageUrl = s3Service.upload(s3Key, imageBytes, "image/png");
+            // 3. Bedrock 배경 제거
+            byte[] transparentImageBytes = bedrockBackgroundRemovalService.removeBackground(geminiImageBytes);
+            log.info("Background removed, size: {} bytes", transparentImageBytes.length);
 
-            // 4. 체크섬 계산
-            String checksum = CryptoUtils.sha256(imageBytes);
+            // 4. S3 업로드 (투명 배경 이미지)
+            String imageUrl = s3Service.upload(s3Key, transparentImageBytes, "image/png");
+
+            // 5. 체크섬 계산 (최종 투명 이미지 기준)
+            String checksum = CryptoUtils.sha256(transparentImageBytes);
 
             log.info("Card image generated successfully: s3Key={}, url={}", s3Key, imageUrl);
 
-            // 5. Generate background colors based on flower combination
+            // 6. Generate background colors based on flower combination
             List<String> backgroundColors = generateBackgroundColors(request);
 
             return new CardAssetDescriptor(imageUrl, s3Key, CardImageSource.GENERATED, checksum, backgroundColors);
 
         } catch (Exception e) {
             log.error("Failed to generate card image", e);
-            throw new RuntimeException("Failed to generate card image via Gemini API", e);
+            throw new RuntimeException("Failed to generate card image via Gemini API and Bedrock", e);
         }
     }
 
@@ -381,7 +387,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                 1. Image 1: Individual %s flower asset (transparent background)
                 2. Image 2: Individual %s flower asset (transparent background)
                 3. Image 3: Complete bouquet style reference showing composition and arrangement
-        
+
                 Create a beautiful, photorealistic flower bouquet with these specifications:
                 - Main Flower: %s (must be prominent, about 50%% of the bouquet)
                 - Supporting Flower: %s (supporting role, about 30%% of the bouquet)
@@ -390,28 +396,29 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                 - Occasion: %s
                 - Emotion/Mood: %s
                 - Size: %s
-        
+
                 CRITICAL REQUIREMENTS:
                 1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (approx. 50%% prominence)
                 2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (approx. 30%%)
                 3. VARIETY: Add 2–3 other complementary flowers (approx. 20%%)
-                4. STYLE: Match Image 3’s exact visual style:
+                4. STYLE: Match Image 3's exact visual style:
                    - Photography style and lighting
                    - Background treatment (color, gradient, texture)
                    - Bouquet arrangement and overall mood
                    - Image quality and resolution
-        
-                BACKGROUND TRANSPARENCY SPECIFICATION:
-                - The background must be fully transparent around the bouquet.
-                - Only the bouquet (flowers and stems) appear; there should be no visible wrapping, vase, or environment.
-                - The final output should ideally be a high-resolution PNG with an alpha channel (transparent background).
-        
+
+                BACKGROUND SPECIFICATION:
+                - Create a clean, attractive background suitable for the bouquet
+                - Use soft, natural colors or gentle gradients
+                - Focus on making the flowers stand out with professional lighting
+                - No visible wrapping, vase, ribbon, or other props
+
                 Additional requirements:
                 - High quality, photorealistic style
                 - Professional florist arrangement
                 - Centered composition of the bouquet in the image
                 - Natural lighting, fresh and vibrant colors
-        
+
                 The bouquet should convey %s feelings and be perfect for giving to %s on %s.
                 """,
                 mainFlowerName,  // Image 1
