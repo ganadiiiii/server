@@ -542,7 +542,6 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         };
     }
 
-
     /**
      * 더미 PNG 이미지 생성 (1x1 투명 픽셀)
      * API Key가 없을 때 사용
