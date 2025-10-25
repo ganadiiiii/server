@@ -293,6 +293,11 @@ public class FlowerCardService {
         List<String> emotionTypeNames = buildEmotionTypeNames(card.getEmotionTypes());
         List<String> emotionTypeLabels = buildEmotionTypeLabels(card.getEmotionTypes());
 
+        // Get background colors from designAsset, or generate dynamically if null
+        List<String> backgroundColors = (asset != null && asset.getBackgroundColors() != null)
+                ? asset.getBackgroundColors()
+                : generateBackgroundColors(mainFlower, subFlower);
+
         return new FlowerCardDtos.CardResponse(
                 card.getCardId(),
                 card.getTitle(),
@@ -311,7 +316,7 @@ public class FlowerCardService {
                 wrappingType == null ? null : wrappingType.getLabel(),
                 card.getPrice(),
                 asset == null ? null : asset.getAssetId(),
-                asset == null ? null : asset.getBackgroundColors(),
+                backgroundColors,
                 mainFlowerSummary,
                 subFlowerSummary
         );
@@ -468,6 +473,11 @@ public class FlowerCardService {
                         subFlower.getImageUrl()
                 );
 
+        // Get background colors from designAsset, or generate dynamically if null
+        List<String> backgroundColors = (asset != null && asset.getBackgroundColors() != null)
+                ? asset.getBackgroundColors()
+                : generateBackgroundColors(mainFlower, subFlower);
+
         return new ShareDtos.SimpleCard(
                 card.getCardId(),
                 card.getTitle(),
@@ -482,7 +492,7 @@ public class FlowerCardService {
                 bouquetSize == null ? null : bouquetSize.getLabel(),
                 wrappingType == null ? null : wrappingType.name(),
                 wrappingType == null ? null : wrappingType.getLabel(),
-                asset == null ? null : asset.getBackgroundColors(),
+                backgroundColors,
                 card.getImageSource() == null ? null : card.getImageSource().name(),
                 card.getFloriography(),
                 card.getPrice(),
@@ -506,5 +516,43 @@ public class FlowerCardService {
                 .map(CardFlowers::getFlowers)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Generate background colors dynamically based on main and sub flower
+     */
+    private static List<String> generateBackgroundColors(Flowers mainFlower, Flowers subFlower) {
+        if (mainFlower == null) {
+            return List.of("#FFFFFF", "#F5F5F5"); // Default white gradient
+        }
+
+        List<String> mainColors = getFlowerColors(mainFlower.getFlowerId());
+
+        if (subFlower != null) {
+            // Blend colors from both flowers
+            List<String> subColors = getFlowerColors(subFlower.getFlowerId());
+            return List.of(mainColors.get(0), subColors.get(0));
+        }
+
+        // Use main flower's predefined color pair
+        return mainColors;
+    }
+
+    /**
+     * Get predefined color pair for a flower by ID
+     */
+    private static List<String> getFlowerColors(Long flowerId) {
+        return switch (flowerId.intValue()) {
+            case 1 -> List.of("#FFAFBC", "#FFDDEA"); // 장미
+            case 2 -> List.of("#FFDDD3", "#FED8DA"); // 튤립
+            case 3 -> List.of("#FFAB9F", "#FFE0CE"); // 카네이션
+            case 4 -> List.of("#F8B36F", "#F7DE81"); // 해바라기
+            case 5 -> List.of("#F8D3AF", "#FFFDEE"); // 백합
+            case 6 -> List.of("#FFBDAC", "#FFF0CF"); // 거베라
+            case 7 -> List.of("#C2D4F3", "#D7EFF3"); // 안개꽃
+            case 8 -> List.of("#FFEE8A", "#FFF5D2"); // 프리지아
+            case 9 -> List.of("#D8C9E4", "#B9CEDB"); // 은방울꽃
+            default -> List.of("#FFFFFF", "#F5F5F5"); // 기본 - 화이트 그라데이션
+        };
     }
 }
