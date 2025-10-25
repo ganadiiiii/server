@@ -3,7 +3,6 @@ package ganadii.hanjum.repository;
 import ganadii.hanjum.domain.Shares;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
@@ -22,8 +21,6 @@ public interface SharesRepository extends JpaRepository<Shares, Long> {
     List<Shares> findByFlowerCards_CardId(Long cardId);
     @Query("select s from Shares s where s.receiver.userId = :receiverId and s.isRead = false")
     List<Shares> findUnreadByReceiver(@Param("receiverId") UUID receiverId);
-
-    @EntityGraph(attributePaths = {"flowerCards.designAsset"})
     Page<Shares> findByReceiver_UserId(UUID receiverId, Pageable pageable);
     Optional<Shares> findFirstByFlowerCards_CardId(Long cardId);
     Optional<Shares> findByIdempotencyKeyAndSender_UserId(String idempotencyKey, UUID senderId);

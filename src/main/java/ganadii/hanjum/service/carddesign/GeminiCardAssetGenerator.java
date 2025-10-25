@@ -31,7 +31,6 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     private final S3Service s3Service;
     private final RestTemplate restTemplate;
-    private final ganadii.hanjum.service.BedrockBackgroundRemovalService bedrockBackgroundRemovalService;
 
     // S3 경로 constants
     private static final String FLOWER_ASSETS_PATH = "main_flowers";
@@ -52,29 +51,24 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
             String s3Key = buildS3Key(request);
 
             // 2. Gemini API 호출
-            byte[] geminiImageBytes = callGeminiApi(request);
-            log.info("Gemini image generated, size: {} bytes", geminiImageBytes.length);
+            byte[] imageBytes = callGeminiApi(request);
 
-            // 3. Bedrock 배경 제거
-            byte[] transparentImageBytes = bedrockBackgroundRemovalService.removeBackground(geminiImageBytes);
-            log.info("Background removed, size: {} bytes", transparentImageBytes.length);
+            // 3. S3 업로드
+            String imageUrl = s3Service.upload(s3Key, imageBytes, "image/png");
 
-            // 4. S3 업로드 (투명 배경 이미지)
-            String imageUrl = s3Service.upload(s3Key, transparentImageBytes, "image/png");
-
-            // 5. 체크섬 계산 (최종 투명 이미지 기준)
-            String checksum = CryptoUtils.sha256(transparentImageBytes);
+            // 4. 체크섬 계산
+            String checksum = CryptoUtils.sha256(imageBytes);
 
             log.info("Card image generated successfully: s3Key={}, url={}", s3Key, imageUrl);
 
-            // 6. Generate background colors based on flower combination
+            // 5. Generate background colors based on flower combination
             List<String> backgroundColors = generateBackgroundColors(request);
 
             return new CardAssetDescriptor(imageUrl, s3Key, CardImageSource.GENERATED, checksum, backgroundColors);
 
         } catch (Exception e) {
             log.error("Failed to generate card image", e);
-            throw new RuntimeException("Failed to generate card image via Gemini API and Bedrock", e);
+            throw new RuntimeException("Failed to generate card image via Gemini API", e);
         }
     }
 
@@ -114,11 +108,13 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
     /**
      * 꽃다발 스타일 참고 이미지를 Base64로 로드
-     * 네이밍 규칙: {flowerId}-{size}.png (예: 1-L.png, 7-M.png)
+     * 네이밍 규칙: {flowerId}-{size}.png
      */
     private String loadBouquetStyleReferenceAsBase64(CardDesignRequest request) {
         Long flowerId = request.mainFlower().getFlowerId();
-        String size = convertBouquetSizeToS3Format(request.bouquetSize());
+        String size = request.bouquetSize() == null
+            ? "medium"
+            : request.bouquetSize().name().toLowerCase();
 
         String referenceKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, size);
 
@@ -139,9 +135,9 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         }
 
         // Fallback 1: Try same flower with medium size
-        if (!"M".equals(size)) {
+        if (!"medium".equals(size)) {
             try {
-                String fallbackKey = String.format("%s/%d-M.png", BOUQUET_REFERENCE_PATH, flowerId);
+                String fallbackKey = String.format("%s/%d-medium.png", BOUQUET_REFERENCE_PATH, flowerId);
                 if (s3Service.exists(fallbackKey)) {
                     byte[] imageBytes = s3Service.download(fallbackKey);
                     log.info("Using fallback bouquet reference (medium size): {}", fallbackKey);
@@ -154,7 +150,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
 
         // Fallback 2: Try any size for this flower
         try {
-            for (String fallbackSize : List.of("M", "S", "L")) {
+            for (String fallbackSize : List.of("medium", "small", "large")) {
                 String fallbackKey = String.format("%s/%d-%s.png", BOUQUET_REFERENCE_PATH, flowerId, fallbackSize);
                 if (s3Service.exists(fallbackKey)) {
                     byte[] imageBytes = s3Service.download(fallbackKey);
@@ -385,7 +381,7 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                 1. Image 1: Individual %s flower asset (transparent background)
                 2. Image 2: Individual %s flower asset (transparent background)
                 3. Image 3: Complete bouquet style reference showing composition and arrangement
-
+        
                 Create a beautiful, photorealistic flower bouquet with these specifications:
                 - Main Flower: %s (must be prominent, about 50%% of the bouquet)
                 - Supporting Flower: %s (supporting role, about 30%% of the bouquet)
@@ -394,29 +390,28 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
                 - Occasion: %s
                 - Emotion/Mood: %s
                 - Size: %s
-
+        
                 CRITICAL REQUIREMENTS:
                 1. COMPOSITION: Use Image 1 (%s) as the centerpiece flower (approx. 50%% prominence)
                 2. SUPPORTING: Integrate Image 2 (%s) as supporting elements (approx. 30%%)
                 3. VARIETY: Add 2–3 other complementary flowers (approx. 20%%)
-                4. STYLE: Match Image 3's exact visual style:
+                4. STYLE: Match Image 3’s exact visual style:
                    - Photography style and lighting
                    - Background treatment (color, gradient, texture)
                    - Bouquet arrangement and overall mood
                    - Image quality and resolution
-
-                BACKGROUND SPECIFICATION:
-                - Create a clean, attractive background suitable for the bouquet
-                - Use soft, natural colors or gentle gradients
-                - Focus on making the flowers stand out with professional lighting
-                - No visible wrapping, vase, ribbon, or other props
-
+        
+                BACKGROUND TRANSPARENCY SPECIFICATION:
+                - The background must be fully transparent around the bouquet.
+                - Only the bouquet (flowers and stems) appear; there should be no visible wrapping, vase, or environment.
+                - The final output should ideally be a high-resolution PNG with an alpha channel (transparent background).
+        
                 Additional requirements:
                 - High quality, photorealistic style
                 - Professional florist arrangement
                 - Centered composition of the bouquet in the image
                 - Natural lighting, fresh and vibrant colors
-
+        
                 The bouquet should convey %s feelings and be perfect for giving to %s on %s.
                 """,
                 mainFlowerName,  // Image 1
@@ -525,22 +520,6 @@ public class GeminiCardAssetGenerator implements CardAssetGenerator {
         return value == null ? "any" : value.toString().toLowerCase();
     }
 
-    /**
-     * BouquetSize enum을 S3 파일명 형식으로 변환
-     * SMALL -> "S", MEDIUM -> "M", LARGE -> "L"
-     */
-    private String convertBouquetSizeToS3Format(Object bouquetSize) {
-        if (bouquetSize == null) {
-            return "M";  // Default to Medium
-        }
-        String name = bouquetSize.toString();
-        return switch (name) {
-            case "SMALL" -> "S";
-            case "MEDIUM" -> "M";
-            case "LARGE" -> "L";
-            default -> "M";
-        };
-    }
 
     /**
      * 더미 PNG 이미지 생성 (1x1 투명 픽셀)
